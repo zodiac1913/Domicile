@@ -1,0 +1,107 @@
+package templates
+
+import "Domicile/internal/models"
+
+// HomeContent is the inner content — used by htmx partial swaps
+templ HomeContent(stats models.DashboardStats) {
+	<h2 class="mb-4"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
+	<div class="row g-4 mb-4">
+		<div class="col-md-3">
+			<div class="card border-0 shadow-sm" style="background-color: #1a3a5c;">
+				<div class="card-body">
+					<div class="d-flex justify-content-between align-items-center">
+						<div>
+							<h6 class="card-subtitle mb-1" style="color: #a8d0f0;">Products</h6>
+							<h2 class="card-title mb-0 text-white">{ stats.ProductCountStr() }</h2>
+						</div>
+						<i class="bi bi-box-seam fs-1" style="color: #5a9fd4;"></i>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-3">
+			<div class="card border-0 shadow-sm" style="background-color: #5c4a1a;">
+				<div class="card-body">
+					<div class="d-flex justify-content-between align-items-center">
+						<div>
+							<h6 class="card-subtitle mb-1" style="color: #f0d8a8;">Expiring Soon</h6>
+							<h2 class="card-title mb-0 text-white">{ stats.ExpiringSoonStr() }</h2>
+						</div>
+						<i class="bi bi-exclamation-triangle fs-1" style="color: #d4a85a;"></i>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-3">
+			<div class="card border-0 shadow-sm" style="background-color: #5c1a1a;">
+				<div class="card-body">
+					<div class="d-flex justify-content-between align-items-center">
+						<div>
+							<h6 class="card-subtitle mb-1" style="color: #f0a8a8;">Below Min Stock</h6>
+							<h2 class="card-title mb-0 text-white">{ stats.BelowMinStockStr() }</h2>
+						</div>
+						<i class="bi bi-arrow-down-circle fs-1" style="color: #d45a5a;"></i>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-3">
+			<div class="card border-0 shadow-sm" style="background-color: #1a4a5c;">
+				<div class="card-body">
+					<div class="d-flex justify-content-between align-items-center">
+						<div>
+							<h6 class="card-subtitle mb-1" style="color: #a8e0f0;">Shopping Items</h6>
+							<h2 class="card-title mb-0 text-white">{ stats.ShoppingItemsStr() }</h2>
+						</div>
+						<i class="bi bi-cart3 fs-1" style="color: #5abcd4;"></i>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row g-4">
+		<div class="col-md-6">
+			<div class="card">
+				<div class="card-header d-flex justify-content-between align-items-center">
+					<span><i class="bi bi-exclamation-triangle me-2"></i>Expiring Soon</span>
+					<a href="/products" class="btn btn-sm btn-outline-light">View All</a>
+				</div>
+				<div class="card-body" id="expiring-list"
+					hx-get="/partials/expiring-soon"
+					hx-trigger="load"
+					hx-swap="innerHTML">
+					<div class="text-center text-body-secondary py-3">
+						<div class="spinner-border spinner-border-sm" role="status">
+							<span class="visually-hidden">Loading...</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-6">
+			<div class="card">
+				<div class="card-header d-flex justify-content-between align-items-center">
+					<span><i class="bi bi-cart3 me-2"></i>Shopping List</span>
+					<a href="/shopping" class="btn btn-sm btn-outline-light">View All</a>
+				</div>
+				<div class="card-body" id="shopping-preview"
+					hx-get="/partials/shopping-preview"
+					hx-trigger="load"
+					hx-swap="innerHTML">
+					<div class="text-center text-body-secondary py-3">
+						<div class="spinner-border spinner-border-sm" role="status">
+							<span class="visually-hidden">Loading...</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+// HomePage is the full page — used for direct browser navigation
+templ HomePage(stats models.DashboardStats) {
+	@Layout("Dashboard") {
+		@HomeContent(stats)
+	}
+}

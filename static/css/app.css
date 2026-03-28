@@ -1,0 +1,86 @@
+/* Domicile custom styles */
+
+/* Background image on all pages */
+body {
+    background-image: url('/static/images/Copilot_20260328_095812.png');
+    background-size: cover;
+    background-position: center top 20%;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+}
+
+/* Semi-transparent overlay so content is readable over the backdrop */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(33, 37, 41, 0.85);
+    z-index: -1;
+}
+
+/* Navbar */
+.navbar {
+    background: rgba(33, 37, 41, 0.95) !important;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.navbar-brand i {
+    color: var(--bs-primary);
+}
+
+.nav-link {
+    transition: color 150ms ease, background-color 150ms ease;
+    border-radius: 0.375rem;
+    padding: 0.4rem 0.75rem !important;
+}
+
+.nav-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.nav-link.active {
+    background: rgba(var(--bs-primary-rgb), 0.15);
+    color: var(--bs-primary) !important;
+}
+
+/* Main content area — full remaining height below navbar */
+#main-content {
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+/* Cards — slight transparency */
+.card {
+    background: rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.9);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.25);
+}
+
+/* Tables */
+.table {
+    --bs-table-bg: transparent;
+}
+
+/* Smooth htmx transitions */
+.htmx-swapping {
+    opacity: 0;
+    transition: opacity 200ms ease-out;
+}
+
+.htmx-settling {
+    opacity: 1;
+    transition: opacity 200ms ease-in;
+}
+
+/* Footer */
+footer {
+    background: transparent;
+}

@@ -1,0 +1,15 @@
+# Database
+data/
+
+# Binary
+Domicile
+__debug_bin*
+
+# OS
+.DS_Store
+
+# Generated templ files
+*_templ.go
+
+# IDE / workspace
+*.code-workspace

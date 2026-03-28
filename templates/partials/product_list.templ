@@ -1,0 +1,105 @@
+package partials
+
+import "Domicile/internal/models"
+
+// ProductRow renders a single product row — used by htmx for swapping
+templ ProductRow(p models.Product) {
+	<tr id={ "product-" + p.IDStr() }>
+		<td>{ p.Name }</td>
+		<td>{ p.Location }</td>
+		<td>
+			<span class={ "badge", stockBadgeClass(p) }>
+				{ p.QuantityStr() }
+			</span>
+		</td>
+		<td>{ p.ExpiresDisplay() }</td>
+		<td>
+			<button class="btn btn-sm btn-outline-success me-1"
+				hx-post={ "/products/" + p.IDStr() + "/consume" }
+				hx-target={ "#product-" + p.IDStr() }
+				hx-swap="outerHTML"
+				title="Consume one">
+				<i class="bi bi-dash-circle"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-primary me-1"
+				hx-post={ "/products/" + p.IDStr() + "/add" }
+				hx-target={ "#product-" + p.IDStr() }
+				hx-swap="outerHTML"
+				title="Add one">
+				<i class="bi bi-plus-circle"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-danger"
+				hx-delete={ "/products/" + p.IDStr() }
+				hx-target={ "#product-" + p.IDStr() }
+				hx-swap="outerHTML swap:200ms"
+				hx-confirm="Delete this product?"
+				title="Delete">
+				<i class="bi bi-trash"></i>
+			</button>
+		</td>
+	</tr>
+}
+
+// ProductTable renders the full product table
+templ ProductTable(products []models.Product) {
+	<div class="table-responsive">
+		<table class="table table-hover align-middle">
+			<thead>
+				<tr>
+					<th>Name</th>
+					<th>Location</th>
+					<th>Quantity</th>
+					<th>Expires</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody id="product-table-body">
+				for _, p := range products {
+					@ProductRow(p)
+				}
+			</tbody>
+		</table>
+	</div>
+	if len(products) == 0 {
+		<p class="text-center text-body-secondary py-3">No products yet. Add your first one above.</p>
+	}
+}
+
+// ExpiringSoon renders a compact list for the dashboard
+templ ExpiringSoon(products []models.Product) {
+	if len(products) == 0 {
+		<p class="text-body-secondary mb-0">Nothing expiring soon. You're all set.</p>
+	} else {
+		<ul class="list-group list-group-flush">
+			for _, p := range products {
+				<li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
+					<span>{ p.Name }</span>
+					<span class="badge text-bg-warning">{ p.ExpiresDisplay() }</span>
+				</li>
+			}
+		</ul>
+	}
+}
+
+// ShoppingPreview renders a compact shopping list for the dashboard
+templ ShoppingPreview(items []models.ShoppingItem) {
+	if len(items) == 0 {
+		<p class="text-body-secondary mb-0">Shopping list is empty.</p>
+	} else {
+		<ul class="list-group list-group-flush">
+			for _, item := range items {
+				<li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
+					<span>{ item.Name }</span>
+					<span class="badge text-bg-info">{ item.QuantityStr() }</span>
+				</li>
+			}
+		</ul>
+	}
+}
+
+func stockBadgeClass(p models.Product) string {
+	if p.Quantity <= p.MinStockAmount {
+		return "text-bg-danger"
+	}
+	return "text-bg-success"
+}
