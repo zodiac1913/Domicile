@@ -1,0 +1,60 @@
+package templates
+
+import (
+	"Domicile/internal/models"
+	"Domicile/templates/partials"
+)
+
+templ MealPlanContent(days []models.MealPlanDay, slots []models.MealSlot, week string) {
+	<div id="meal-plan-area">
+		<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+			<div role="heading" aria-level="2" class="h2 mb-0"><i class="bi bi-calendar-week me-2"></i>Meal Plan</div>
+			<div class="d-flex gap-2 flex-wrap">
+				<button class="btn btn-sm btn-outline-secondary"
+					hx-get="/meal-plan/ingredients"
+					hx-target="#meal-plan-modal-body" hx-swap="innerHTML"
+					data-bs-toggle="modal" data-bs-target="#meal-plan-modal"
+					title="Generate ingredients list">
+					<i class="bi bi-basket me-1"></i>Ingredients
+				</button>
+				<button class="btn btn-sm btn-outline-secondary"
+					hx-get="/meal-plan/slots"
+					hx-target="#meal-plan-modal-body" hx-swap="innerHTML"
+					data-bs-toggle="modal" data-bs-target="#meal-plan-modal"
+					title="Manage meal slots">
+					<i class="bi bi-sliders me-1"></i>Meal Slots
+				</button>
+			</div>
+		</div>
+		@partials.MealPlanWeekGrid(days, slots, week)
+	</div>
+	<!-- Shared modal for forms -->
+	<div class="modal fade" id="meal-plan-modal" tabindex="-1" aria-hidden="true">
+		<div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+			<div class="modal-content">
+				<div class="modal-header py-2">
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body" id="meal-plan-modal-body"></div>
+			</div>
+		</div>
+	</div>
+}
+
+templ MealPlanPage(days []models.MealPlanDay, slots []models.MealSlot, week string) {
+	@Layout("Meal Plan") {
+		@MealPlanContent(days, slots, week)
+	}
+}
+
+templ MealPlanSlotsPage(slots []models.MealSlot) {
+	@Layout("Meal Slots") {
+		<div class="mb-3">
+			<button class="btn btn-sm btn-outline-secondary"
+				hx-get="/meal-plan" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/meal-plan">
+				<i class="bi bi-arrow-left me-1"></i>Back to Meal Plan
+			</button>
+		</div>
+		@partials.MealPlanSlotsPanel(slots)
+	}
+}

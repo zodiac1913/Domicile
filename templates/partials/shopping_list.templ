@@ -1,0 +1,240 @@
+package partials
+
+import (
+	"Domicile/internal/models"
+	"strconv"
+)
+
+templ ShoppingRow(item models.ShoppingListItem) {
+	<tr id={ "shopping-" + item.IDStr() }
+		class={ templ.KV("text-decoration-line-through text-body-secondary", item.IsDone()) }>
+		<td class="fit-content">
+			<button class="btn btn-sm btn-outline-success"
+				hx-post={ "/shopping/" + item.IDStr() + "/toggle" }
+				hx-target={ "#shopping-" + item.IDStr() }
+				hx-swap="outerHTML"
+				title="Toggle done">
+				if item.IsDone() {
+					<i class="bi bi-check-circle-fill"></i>
+				} else {
+					<i class="bi bi-circle"></i>
+				}
+			</button>
+		</td>
+		<td>
+			{ item.DisplayName() }
+			if item.Note != "" && item.ProductName != "" {
+				<br/><small class="text-body-secondary">{ item.Note }</small>
+			}
+		</td>
+		<td class="text-body-secondary small">{ item.ProductGroup }</td>
+		<td>
+			if item.HomeLoc != "" {
+				<span class="badge text-bg-secondary"><i class="bi bi-house me-1"></i>{ item.HomeLoc }</span>
+			}
+		</td>
+		<td>{ item.AmountStr() }</td>
+		<td class="text-body-secondary">{ item.PriceStr() }</td>
+		<td>
+			if item.ProductGroup == "Ungrouped" && item.ProductID != nil && !item.IsDone() {
+				<div class="d-inline-block group-assign-wrap" data-item-id={ item.IDStr() }>
+					<button class="btn btn-sm btn-outline-info me-1 ga-btn"
+						title="Assign aisle/group" aria-label="Assign product group">
+						<i class="bi bi-geo-alt"></i>
+					</button>
+					<div class="d-none group-assign-form">
+						<select class="form-select form-select-sm d-inline-block ga-select" style="width: auto; max-width: 200px;">
+							<option value="">Pick group...</option>
+						</select>
+					</div>
+				</div>
+			}
+			<button class="btn btn-sm btn-outline-warning me-1"
+				hx-get={ "/shopping/" + item.IDStr() + "/edit" }
+				hx-target="#shopping-area"
+				hx-swap="innerHTML"
+				title="Edit">
+				<i class="bi bi-pencil"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-danger"
+				hx-delete={ "/shopping/" + item.IDStr() }
+				hx-target={ "#shopping-" + item.IDStr() }
+				hx-swap="outerHTML swap:200ms"
+				hx-confirm="Remove this item?"
+				title="Delete">
+				<i class="bi bi-trash"></i>
+			</button>
+		</td>
+	</tr>
+}
+
+templ ShoppingTable(items []models.ShoppingListItem) {
+	<div class="table-responsive">
+		<table class="table table-hover align-middle" role="table">
+			<thead>
+				<tr>
+					<th style="width: 50px;"></th>
+					<th>Item</th>
+					<th>Aisle</th>
+					<th>Home</th>
+					<th>Qty</th>
+					<th>Price</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody id="shopping-table-body">
+				for _, item := range items {
+					@ShoppingRow(item)
+				}
+			</tbody>
+		</table>
+	</div>
+	if len(items) == 0 {
+		<p class="text-center text-body-secondary py-3">Shopping list is empty. Add items or use "Add Missing Stock".</p>
+	}
+}
+
+templ ShoppingItemForm(item *models.ShoppingListItem, products []models.Location, currentItems []models.ShoppingListItem) {
+	<div class="mb-3">
+		<button class="btn btn-sm btn-outline-secondary"
+			hx-get="/shopping"
+			hx-target="#main-content"
+			hx-swap="innerHTML"
+			hx-push-url="/shopping">
+			<i class="bi bi-arrow-left me-1"></i>Back to Shopping List
+		</button>
+	</div>
+	if item != nil {
+		<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-pencil me-2"></i>Edit Item</div>
+	} else {
+		<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-plus-lg me-2"></i>Add Item</div>
+	}
+	<div class="card">
+		<div class="card-body">
+			if item != nil {
+				<form hx-put={ "/shopping/" + item.IDStr() }
+					hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/shopping">
+					@shoppingFormFields(item, products)
+				</form>
+			} else {
+				<form hx-post="/shopping"
+					hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/shopping">
+					@shoppingFormFields(nil, products)
+				</form>
+			}
+		</div>
+	</div>
+	if len(currentItems) > 0 {
+		<div class="card mt-3">
+			<div class="card-body py-2">
+				<small class="text-body-secondary d-block mb-1">Already on list:</small>
+				<div class="small text-body-secondary" style="columns: 2; column-gap: 2rem;">
+					for _, ci := range currentItems {
+						if !ci.IsDone() {
+							<div>{ ci.AmountStr() } { ci.DisplayName() }</div>
+						}
+					}
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ shoppingFormFields(item *models.ShoppingListItem, products []models.Location) {
+	<div class="row g-3">
+		<div class="col-md-5">
+			<label for="product_id" class="form-label">Product (optional)</label>
+			<select class="form-select" id="product_id" name="product_id">
+				<option value="">— Freeform note only —</option>
+				for _, p := range products {
+					<option value={ strconv.Itoa(p.ID) }
+						if item != nil && item.ProductID != nil && *item.ProductID == p.ID {
+							selected
+						}
+					>{ p.Name }</option>
+				}
+			</select>
+		</div>
+		<div class="col-md-4">
+			<label for="note" class="form-label">Note</label>
+			<input type="text" class="form-control" id="note" name="note"
+				placeholder="e.g. get the organic kind"
+				if item != nil {
+					value={ item.Note }
+				}
+			/>
+		</div>
+		<div class="col-md-2">
+			<label for="amount" class="form-label">Quantity</label>
+			<input type="number" class="form-control" id="amount" name="amount" min="1" step="any"
+				if item != nil {
+					value={ item.AmountStr() }
+				} else {
+					value="1"
+				}
+			/>
+		</div>
+		<div class="col-12 mt-3">
+			<button type="submit" class="btn btn-success me-2">
+				<i class="bi bi-check-lg me-1"></i>
+				if item != nil {
+					Save Changes
+				} else {
+					Add to List
+				}
+			</button>
+			<button type="button" class="btn btn-outline-secondary"
+				hx-get="/shopping" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/shopping">
+				Cancel
+			</button>
+		</div>
+	</div>
+}
+
+// ShopModeItem renders a single item in shop mode — big touch target, tap to check off.
+templ ShopModeItem(item models.ShoppingListItem) {
+	<div id={ "shop-" + item.IDStr() }
+		class={ "list-group-item d-flex align-items-center py-3",
+			templ.KV("text-decoration-line-through text-body-secondary", item.IsDone()) }
+		style="font-size: 1.1rem;">
+		<span class="me-3 fs-4" style="cursor: pointer;"
+			hx-post={ "/shopping/" + item.IDStr() + "/shop-toggle" }
+			hx-target={ "#shop-" + item.IDStr() }
+			hx-swap="outerHTML">
+			if item.IsDone() {
+				<i class="bi bi-check-circle-fill text-success"></i>
+			} else {
+				<i class="bi bi-circle text-body-secondary"></i>
+			}
+		</span>
+		<span class="flex-grow-1" style="cursor: pointer;"
+			hx-post={ "/shopping/" + item.IDStr() + "/shop-toggle" }
+			hx-target={ "#shop-" + item.IDStr() }
+			hx-swap="outerHTML">
+			{ item.DisplayName() }
+			if item.Note != "" && item.ProductName != "" {
+				<br/><small class="text-body-secondary">{ item.Note }</small>
+			}
+			if item.HomeLoc != "" {
+				<br/><small class="text-body-secondary"><i class="bi bi-house me-1"></i>{ item.HomeLoc }</small>
+			}
+		</span>
+		if item.ProductGroup == "Ungrouped" && item.ProductID != nil && !item.IsDone() {
+			<div class="group-assign-wrap ms-2" data-item-id={ item.IDStr() }>
+				<button class="btn btn-sm btn-outline-info ga-btn"
+					title="Assign aisle" aria-label="Assign product group">
+					<i class="bi bi-geo-alt"></i>
+				</button>
+				<div class="d-none group-assign-form">
+					<select class="form-select form-select-sm ga-select" style="width: auto; max-width: 180px;">
+						<option value="">Pick group...</option>
+					</select>
+				</div>
+			</div>
+		}
+		<span class="badge text-bg-secondary ms-2">{ item.AmountStr() }</span>
+		if item.PriceStr() != "" {
+			<small class="text-body-secondary ms-1">{ item.PriceStr() }</small>
+		}
+	</div>
+}

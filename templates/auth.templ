@@ -1,0 +1,106 @@
+package templates
+
+// SetupPage is the first-run admin account creation screen.
+templ SetupPage() {
+	@AuthLayout("Setup") {
+		<div class="text-center mb-4">
+			<p class="text-body-secondary small mb-3" style="text-align: justify;">Admiral Ben Moreell — "King Bee" From humble beginnings as a sailor to becoming the U.S. Navy's Chief Civil Engineer and founder of the Seabees, Admiral Ben Moreell embodied integrity and ingenuity. After World War II, he led major American industries with the same fairness that earned him a rare distinction: trust from both labor unions and management alike. A builder of ships, steel, and bridges — and of respect between people who seldom agreed.</p>
+			<img src="/static/images/KingBee.jpeg" alt="Admiral Ben Moreell the King Bee" title="Admiral Ben Moreell the &quot;King Bee&quot;" style="width: 80px; height: 80px; border-radius: 50%;"/>
+			<div role="heading" aria-level="2" class="h2 mt-3">Welcome to Domicile</div>
+			<p class="text-body-secondary">Create your admin account to get started</p>
+		</div>
+		<form method="POST" action="/setup">
+			<div class="mb-3">
+				<label for="username" class="form-label">Username</label>
+				<input type="text" class="form-control" id="username" name="username" required autofocus/>
+			</div>
+			<div class="mb-3">
+				<label for="password" class="form-label">Password</label>
+				<input type="password" class="form-control" id="password" name="password" required minlength="6"/>
+				<div class="form-text">At least 6 characters</div>
+			</div>
+			<div class="mb-3">
+				<label for="confirm_password" class="form-label">Confirm Password</label>
+				<input type="password" class="form-control" id="confirm_password" name="confirm_password" required/>
+			</div>
+			<button type="submit" class="btn btn-primary w-100">
+				<i class="bi bi-person-plus me-1"></i>Create Admin Account
+			</button>
+		</form>
+	}
+}
+
+// LoginPage is the login screen.
+templ LoginPage() {
+	@AuthLayout("Login") {
+		<div class="text-center mb-4">
+			<p class="text-body-secondary small mb-3" style="text-align: justify;">Admiral Ben Moreell — "King Bee" From humble beginnings as a sailor to becoming the U.S. Navy's Chief Civil Engineer and founder of the Seabees, Admiral Ben Moreell embodied integrity and ingenuity. After World War II, he led major American industries with the same fairness that earned him a rare distinction: trust from both labor unions and management alike. A builder of ships, steel, and bridges — and of respect between people who seldom agreed.</p>
+			<img src="/static/images/KingBee.jpeg" alt="Admiral Ben Moreell the King Bee" title="Admiral Ben Moreell the &quot;King Bee&quot;" style="width: 80px; height: 80px; border-radius: 50%;"/>
+			<div role="heading" aria-level="2" class="h2 mt-3">Domicile</div>
+			<p class="text-body-secondary">Sign in to your account</p>
+		</div>
+		<form method="POST" action="/login">
+			<div class="mb-3">
+				<label for="username" class="form-label">Username</label>
+				<input type="text" class="form-control" id="username" name="username" required autofocus/>
+			</div>
+			<div class="mb-3">
+				<label for="password" class="form-label">Password</label>
+				<input type="password" class="form-control" id="password" name="password" required/>
+			</div>
+			<button type="submit" class="btn btn-primary w-100">
+				<i class="bi bi-box-arrow-in-right me-1"></i>Sign In
+			</button>
+		</form>
+	}
+}
+
+// LoginPageWithError shows the login page with an error message.
+templ LoginPageWithError(errMsg string) {
+	@AuthLayout("Login") {
+		<div class="text-center mb-4">
+			<p class="text-body-secondary small mb-3" style="text-align: justify;">Admiral Ben Moreell — "King Bee" From humble beginnings as a sailor to becoming the U.S. Navy's Chief Civil Engineer and founder of the Seabees, Admiral Ben Moreell embodied integrity and ingenuity. After World War II, he led major American industries with the same fairness that earned him a rare distinction: trust from both labor unions and management alike. A builder of ships, steel, and bridges — and of respect between people who seldom agreed.</p>
+			<img src="/static/images/KingBee.jpeg" alt="Admiral Ben Moreell the King Bee" title="Admiral Ben Moreell the &quot;King Bee&quot;" style="width: 80px; height: 80px; border-radius: 50%;"/>
+			<div role="heading" aria-level="2" class="h2 mt-3">Domicile</div>
+		</div>
+		<div class="alert alert-danger">{ errMsg }</div>
+		<form method="POST" action="/login">
+			<div class="mb-3">
+				<label for="username" class="form-label">Username</label>
+				<input type="text" class="form-control" id="username" name="username" required autofocus/>
+			</div>
+			<div class="mb-3">
+				<label for="password" class="form-label">Password</label>
+				<input type="password" class="form-control" id="password" name="password" required/>
+			</div>
+			<button type="submit" class="btn btn-primary w-100">
+				<i class="bi bi-box-arrow-in-right me-1"></i>Sign In
+			</button>
+		</form>
+	}
+}
+
+// AuthLayout is a minimal layout for login/setup pages — no navbar.
+templ AuthLayout(title string) {
+	<!DOCTYPE html>
+	<html lang="en" data-bs-theme="dark">
+	<head>
+		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1"/>
+		<title>{ title } - Domicile</title>
+		<link rel="icon" type="image/jpeg" href="/static/images/KingBee.jpeg"/>
+		<link href="/static/css/BSPlus.css" rel="stylesheet"/>
+		<link href="/static/css/app.css" rel="stylesheet"/>
+	</head>
+	<body>
+		<div class="container" style="max-width: 420px; margin-top: 10vh;">
+			<div class="card">
+				<div class="card-body p-4">
+					{ children... }
+				</div>
+			</div>
+		</div>
+		<script src="/static/vendor/bootstrap.bundle.min.js"></script>
+	</body>
+	</html>
+}

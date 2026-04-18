@@ -1,0 +1,208 @@
+package partials
+
+import (
+	"Domicile/internal/models"
+	"strconv"
+)
+
+templ StockTable(items []models.StockItem) {
+	<div class="table-responsive">
+		<table class="table table-hover align-middle" role="table" aria-label="Stock overview">
+			<thead>
+				<tr>
+					<th>Product</th>
+					<th>Location</th>
+					<th>Amount</th>
+					<th>Best Before</th>
+					<th>Price</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody id="stock-table-body">
+				for _, s := range items {
+					<tr class={ templ.KV("table-danger", s.IsBelowMin()) }>
+						<td>{ s.ProductName }</td>
+						<td>{ s.LocationName }</td>
+						<td>{ s.AmountStr() }</td>
+						<td>{ s.BestBeforeDate }</td>
+						<td>{ s.PriceStr() }</td>
+						<td>
+							<a class="btn btn-sm btn-outline-success me-1"
+								hx-get={ "/stock/purchase?product=" + s.ProductIDStr() }
+								hx-target="#main-content" hx-swap="innerHTML"
+								title="Purchase" aria-label="Purchase stock">
+								<i class="bi bi-bag-plus"></i>
+							</a>
+							<a class="btn btn-sm btn-outline-warning me-1"
+								hx-get={ "/stock/consume?product=" + s.ProductIDStr() }
+								hx-target="#main-content" hx-swap="innerHTML"
+								title="Consume" aria-label="Consume stock">
+								<i class="bi bi-bag-dash"></i>
+							</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+	if len(items) == 0 {
+		<p class="text-center text-body-secondary py-3">No stock data. Purchase some products to get started.</p>
+	}
+}
+
+templ PurchaseForm(products []models.Location, locations []models.Location, preselect int) {
+	<div class="mb-3">
+		<button class="btn btn-sm btn-outline-secondary"
+			hx-get="/stock" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/stock">
+			<i class="bi bi-arrow-left me-1"></i>Back to Stock
+		</button>
+	</div>
+	<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-bag-plus me-2"></i>Purchase</div>
+	<div class="card"><div class="card-body">
+		<form hx-post="/stock/purchase" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/stock">
+			<div class="row g-3">
+				<div class="col-md-4">
+					<label for="product_id" class="form-label">Product</label>
+					<select class="form-select" id="product_id" name="product_id" required>
+						<option value="">Select product...</option>
+						for _, p := range products {
+							<option value={ strconv.Itoa(p.ID) }
+								if p.ID == preselect { selected }
+							>{ p.Name }</option>
+						}
+					</select>
+				</div>
+				<div class="col-md-2">
+					<label for="amount" class="form-label">Amount</label>
+					<input type="number" class="form-control" id="amount" name="amount" min="1" step="any" value="1" required/>
+				</div>
+				<div class="col-md-2">
+					<label for="price" class="form-label">Price (per unit)</label>
+					<div class="input-group">
+						<span class="input-group-text">$</span>
+						<input type="number" class="form-control" id="price" name="price" min="0" step="0.01"/>
+					</div>
+				</div>
+				<div class="col-md-2">
+					<label for="best_before_date" class="form-label">Best Before</label>
+					<input type="date" class="form-control" id="best_before_date" name="best_before_date"/>
+				</div>
+				<div class="col-md-2">
+					<label for="location_id" class="form-label">Location</label>
+					<select class="form-select" id="location_id" name="location_id">
+						<option value="">Default</option>
+						for _, l := range locations {
+							<option value={ strconv.Itoa(l.ID) }>{ l.Name }</option>
+						}
+					</select>
+				</div>
+				<div class="col-md-6">
+					<label for="note" class="form-label">Note</label>
+					<input type="text" class="form-control" id="note" name="note" placeholder="Optional note"/>
+				</div>
+				<div class="col-12 mt-3">
+					<button type="submit" class="btn btn-success me-2">
+						<i class="bi bi-bag-plus me-1"></i>Purchase
+					</button>
+					<button type="button" class="btn btn-outline-secondary"
+						hx-get="/stock" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/stock">
+						Cancel
+					</button>
+				</div>
+			</div>
+		</form>
+	</div></div>
+}
+
+templ ConsumeForm(products []models.Location, preselect int) {
+	<div class="mb-3">
+		<button class="btn btn-sm btn-outline-secondary"
+			hx-get="/stock" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/stock">
+			<i class="bi bi-arrow-left me-1"></i>Back to Stock
+		</button>
+	</div>
+	<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-bag-dash me-2"></i>Consume</div>
+	<div class="card"><div class="card-body">
+		<form hx-post="/stock/consume" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/stock">
+			<div class="row g-3">
+				<div class="col-md-4">
+					<label for="product_id" class="form-label">Product</label>
+					<select class="form-select" id="product_id" name="product_id" required>
+						<option value="">Select product...</option>
+						for _, p := range products {
+							<option value={ strconv.Itoa(p.ID) }
+								if p.ID == preselect { selected }
+							>{ p.Name }</option>
+						}
+					</select>
+				</div>
+				<div class="col-md-2">
+					<label for="amount" class="form-label">Amount</label>
+					<input type="number" class="form-control" id="amount" name="amount" min="1" step="any" value="1" required/>
+				</div>
+				<div class="col-md-2 d-flex align-items-end">
+					<div class="form-check">
+						<input class="form-check-input" type="checkbox" id="spoiled" name="spoiled" value="1"/>
+						<label class="form-check-label" for="spoiled">Spoiled</label>
+					</div>
+				</div>
+				<div class="col-12 mt-3">
+					<button type="submit" class="btn btn-warning me-2">
+						<i class="bi bi-bag-dash me-1"></i>Consume
+					</button>
+					<button type="button" class="btn btn-outline-secondary"
+						hx-get="/stock" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/stock">
+						Cancel
+					</button>
+				</div>
+			</div>
+		</form>
+	</div></div>
+}
+
+templ TransferForm(products []models.Location, locations []models.Location) {
+	<div class="mb-3">
+		<button class="btn btn-sm btn-outline-secondary"
+			hx-get="/stock" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/stock">
+			<i class="bi bi-arrow-left me-1"></i>Back to Stock
+		</button>
+	</div>
+	<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-arrow-left-right me-2"></i>Transfer</div>
+	<div class="card"><div class="card-body">
+		<form hx-post="/stock/transfer" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/stock">
+			<div class="row g-3">
+				<div class="col-md-4">
+					<label for="product_id" class="form-label">Product</label>
+					<select class="form-select" id="product_id" name="product_id" required>
+						<option value="">Select product...</option>
+						for _, p := range products {
+							<option value={ strconv.Itoa(p.ID) }>{ p.Name }</option>
+						}
+					</select>
+				</div>
+				<div class="col-md-2">
+					<label for="amount" class="form-label">Amount</label>
+					<input type="number" class="form-control" id="amount" name="amount" min="1" step="any" value="1" required/>
+				</div>
+				<div class="col-md-3">
+					<label for="to_location_id" class="form-label">To Location</label>
+					<select class="form-select" id="to_location_id" name="to_location_id" required>
+						<option value="">Select destination...</option>
+						for _, l := range locations {
+							<option value={ strconv.Itoa(l.ID) }>{ l.Name }</option>
+						}
+					</select>
+				</div>
+				<div class="col-12 mt-3">
+					<button type="submit" class="btn btn-info me-2">
+						<i class="bi bi-arrow-left-right me-1"></i>Transfer
+					</button>
+					<button type="button" class="btn btn-outline-secondary"
+						hx-get="/stock" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/stock">
+						Cancel
+					</button>
+				</div>
+			</div>
+		</form>
+	</div></div>
+}

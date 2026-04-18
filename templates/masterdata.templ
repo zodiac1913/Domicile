@@ -1,0 +1,84 @@
+package templates
+
+import (
+	"Domicile/internal/models"
+	"Domicile/templates/partials"
+)
+
+// ==================== Product Groups ====================
+
+templ ProductGroupsContent(items []models.ProductGroup) {
+	<div id="pg-area">
+		<div class="d-flex justify-content-between align-items-center mb-4">
+			<div role="heading" aria-level="2" class="h2"><i class="bi bi-collection me-2"></i>Product Groups</div>
+			<div class="input-group" style="max-width: 250px;">
+				<span class="input-group-text"><i class="bi bi-search"></i></span>
+				<input type="text" class="form-control" placeholder="Search..." autocomplete="off" aria-label="Search" aria-label="Search"
+					oninput="filterTable(this.value, 'pg-table-body')"/>
+			</div>
+		</div>
+		@partials.ProductGroupTable(items)
+		<button class="btn btn-primary btn-lg rounded-circle shadow position-fixed"
+			style="bottom: 2rem; right: 2rem; width: 56px; height: 56px; z-index: 1050;"
+			hx-get="/product-groups/new" hx-target="#pg-area" hx-swap="innerHTML"
+			title="Add Product Group" aria-label="Add Product Group">
+			<i class="bi bi-plus-lg"></i>
+		</button>
+	</div>
+}
+
+templ ProductGroupsPage(items []models.ProductGroup) {
+	@Layout("Product Groups") { @ProductGroupsContent(items) }
+}
+
+// ==================== Quantity Units ====================
+
+templ QuantityUnitsContent(items []models.QuantityUnit) {
+	<div id="qu-area">
+		<div class="d-flex justify-content-between align-items-center mb-4">
+			<div role="heading" aria-level="2" class="h2"><i class="bi bi-rulers me-2"></i>Quantity Units</div>
+			<div class="input-group" style="max-width: 250px;">
+				<span class="input-group-text"><i class="bi bi-search"></i></span>
+				<input type="text" class="form-control" placeholder="Search..." autocomplete="off" aria-label="Search" aria-label="Search"
+					oninput="filterTable(this.value, 'qu-table-body')"/>
+			</div>
+		</div>
+		@partials.QuantityUnitTable(items)
+		<button class="btn btn-primary btn-lg rounded-circle shadow position-fixed"
+			style="bottom: 2rem; right: 2rem; width: 56px; height: 56px; z-index: 1050;"
+			hx-get="/quantity-units/new" hx-target="#qu-area" hx-swap="innerHTML"
+			title="Add Quantity Unit" aria-label="Add Quantity Unit">
+			<i class="bi bi-plus-lg"></i>
+		</button>
+	</div>
+}
+
+templ QuantityUnitsPage(items []models.QuantityUnit) {
+	@Layout("Quantity Units") { @QuantityUnitsContent(items) }
+}
+
+// ==================== Stores ====================
+
+templ StoresContent(items []models.ShoppingLocation) {
+	<div id="store-area">
+		<div class="d-flex justify-content-between align-items-center mb-4">
+			<div role="heading" aria-level="2" class="h2"><i class="bi bi-shop me-2"></i>Stores</div>
+			<div class="input-group" style="max-width: 250px;">
+				<span class="input-group-text"><i class="bi bi-search"></i></span>
+				<input type="text" class="form-control" placeholder="Search..." autocomplete="off" aria-label="Search" aria-label="Search"
+					oninput="filterTable(this.value, 'store-table-body')"/>
+			</div>
+		</div>
+		@partials.StoreTable(items)
+		<button class="btn btn-primary btn-lg rounded-circle shadow position-fixed"
+			style="bottom: 2rem; right: 2rem; width: 56px; height: 56px; z-index: 1050;"
+			hx-get="/stores/new" hx-target="#store-area" hx-swap="innerHTML"
+			title="Add Store" aria-label="Add Store">
+			<i class="bi bi-plus-lg"></i>
+		</button>
+	</div>
+}
+
+templ StoresPage(items []models.ShoppingLocation) {
+	@Layout("Stores") { @StoresContent(items) }
+}

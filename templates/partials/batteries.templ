@@ -1,0 +1,216 @@
+package partials
+
+import (
+	"Domicile/internal/models"
+	"strconv"
+)
+
+templ BatteriesTable(items []models.Battery) {
+	<div class="table-responsive">
+		<table class="table table-hover align-middle">
+			<thead>
+				<tr>
+					<th>Name</th>
+					<th>Used In</th>
+					<th>Description</th>
+					<th>Charge Every</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody id="batteries-table-body">
+				for _, b := range items {
+					@BatteryRow(b)
+				}
+			</tbody>
+		</table>
+	</div>
+	if len(items) == 0 {
+		<p class="text-center text-body-secondary py-3">No batteries yet.</p>
+	}
+}
+
+templ BatteryRow(b models.Battery) {
+	<tr id={ "battery-" + b.IDStr() }>
+		<td>{ b.Name }</td>
+		<td>{ b.UsedIn }</td>
+		<td class="text-body-secondary small">{ b.Description }</td>
+		<td>
+			if b.ChargeIntervalDays > 0 {
+				{ strconv.Itoa(b.ChargeIntervalDays) } days
+			} else {
+				<span class="text-body-secondary">—</span>
+			}
+		</td>
+		<td>
+			<button class="btn btn-sm btn-outline-warning me-1"
+				hx-get={ "/batteries/" + b.IDStr() + "/edit" }
+				hx-target="#batteries-area" hx-swap="innerHTML"
+				title="Edit">
+				<i class="bi bi-pencil"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-danger"
+				hx-delete={ "/batteries/" + b.IDStr() }
+				hx-target={ "#battery-" + b.IDStr() }
+				hx-swap="outerHTML swap:200ms"
+				hx-confirm={ "Delete " + b.Name + "?" }
+				title="Delete">
+				<i class="bi bi-trash"></i>
+			</button>
+		</td>
+	</tr>
+}
+
+templ BatteryOverviewRow(b models.BatteryOverview) {
+	<tr class={ b.RowClass() } id={ "bov-" + b.IDStr() }>
+		<td>{ b.Name }</td>
+		<td class="text-body-secondary">{ b.UsedIn }</td>
+		<td>
+			if b.ChargeIntervalDays > 0 {
+				{ strconv.Itoa(b.ChargeIntervalDays) } days
+			} else {
+				<span class="text-body-secondary">—</span>
+			}
+		</td>
+		<td>{ b.LastChargedDisplay() }</td>
+		<td>{ b.NextDueDisplay() }</td>
+		<td>
+			if b.StatusLabel() != "" {
+				if b.RowClass() == "table-danger" {
+					<span class="badge text-bg-danger">{ b.StatusLabel() }</span>
+				} else if b.RowClass() == "table-warning" {
+					<span class="badge text-bg-warning text-dark">{ b.StatusLabel() }</span>
+				} else if b.LastCharged == "" {
+					<span class="badge text-bg-secondary">{ b.StatusLabel() }</span>
+				} else {
+					<span class="badge text-bg-success">{ b.StatusLabel() }</span>
+				}
+			}
+		</td>
+		<td>
+			<form hx-post={ "/batteries/" + b.IDStr() + "/charge" }
+				hx-target="#batteries-overview-body" hx-swap="innerHTML"
+				class="d-inline">
+				<input type="hidden" name="tracked_time" value=""/>
+				<button type="submit" class="btn btn-sm btn-outline-success me-1" title="Log charge now">
+					<i class="bi bi-lightning-charge me-1"></i>Charged
+				</button>
+			</form>
+			<button class="btn btn-sm btn-outline-secondary me-1"
+				hx-post={ "/batteries/" + b.IDStr() + "/undo" }
+				hx-target="#batteries-overview-body" hx-swap="innerHTML"
+				hx-confirm="Undo last charge?"
+				title="Undo last charge">
+				<i class="bi bi-arrow-counterclockwise"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-info"
+				hx-get={ "/batteries/" + b.IDStr() + "/history" }
+				hx-target="#battery-modal-body" hx-swap="innerHTML"
+				data-bs-toggle="modal" data-bs-target="#battery-modal"
+				title="View charge history">
+				<i class="bi bi-clock-history"></i>
+			</button>
+		</td>
+	</tr>
+}
+
+templ BatteryForm(b *models.Battery) {
+	<div class="mb-3">
+		<button class="btn btn-sm btn-outline-secondary"
+			hx-get="/batteries" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/batteries">
+			<i class="bi bi-arrow-left me-1"></i>Back
+		</button>
+	</div>
+	if b != nil {
+		<div role="heading" aria-level="3" class="mb-3"><i class="bi bi-pencil me-2"></i>Edit Battery</div>
+	} else {
+		<div role="heading" aria-level="3" class="mb-3"><i class="bi bi-plus-lg me-2"></i>New Battery</div>
+	}
+	<div class="card"><div class="card-body">
+		if b != nil {
+			<form hx-post={ "/batteries/" + b.IDStr() + "/update" }
+				hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/batteries">
+				@batteryFormFields(b)
+			</form>
+		} else {
+			<form hx-post="/batteries"
+				hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/batteries">
+				@batteryFormFields(nil)
+			</form>
+		}
+	</div></div>
+}
+
+templ batteryFormFields(b *models.Battery) {
+	<div class="row g-3">
+		<div class="col-md-4">
+			<label class="form-label">Name</label>
+			<input type="text" class="form-control" name="name" required
+				if b != nil { value={ b.Name } }/>
+		</div>
+		<div class="col-md-4">
+			<label class="form-label">Used In</label>
+			<input type="text" class="form-control" name="used_in" placeholder="e.g. TV Remote"
+				if b != nil { value={ b.UsedIn } }/>
+		</div>
+		<div class="col-md-4">
+			<label class="form-label">Charge Every (days)</label>
+			<input type="number" class="form-control" name="charge_interval_days" min="0" placeholder="0 = no schedule"
+				if b != nil { value={ strconv.Itoa(b.ChargeIntervalDays) } } else { value="0" }/>
+		</div>
+		<div class="col-12">
+			<label class="form-label">Description</label>
+			<input type="text" class="form-control" name="description" placeholder="Optional notes"
+				if b != nil { value={ b.Description } }/>
+		</div>
+		<div class="col-12">
+			<button type="submit" class="btn btn-success me-2">
+				<i class="bi bi-check-lg me-1"></i>
+				if b != nil {
+					Save Changes
+				} else {
+					Add Battery
+				}
+			</button>
+			<button type="button" class="btn btn-outline-secondary"
+				hx-get="/batteries" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/batteries">
+				Cancel
+			</button>
+		</div>
+	</div>
+}
+
+templ BatteryHistoryPanel(b models.Battery, cycles []models.BatteryChargeCycle) {
+	<div class="fw-semibold mb-3"><i class="bi bi-clock-history me-2"></i>{ b.Name } — Charge History</div>
+	if len(cycles) == 0 {
+		<p class="text-body-secondary">No charge cycles recorded yet.</p>
+	} else {
+		<table class="table table-sm align-middle">
+			<thead>
+				<tr>
+					<th>Date / Time</th>
+					<th>Status</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, c := range cycles {
+					<tr class={ templ.KV("text-decoration-line-through text-body-secondary", c.Undone == 1) }>
+						<td>
+							if len(c.TrackedTime) >= 10 {
+								{ c.TrackedTime[:16] }
+							} else {
+								{ c.TrackedTime }
+							}
+						</td>
+						<td>
+							if c.Undone == 1 {
+								<span class="badge text-bg-secondary">Undone</span>
+							} else {
+								<span class="badge text-bg-success">Charged</span>
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}

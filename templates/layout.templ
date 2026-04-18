@@ -7,128 +7,375 @@ templ Layout(title string) {
 		<meta charset="utf-8"/>
 		<meta name="viewport" content="width=device-width, initial-scale=1"/>
 		<title>{ title } - Domicile</title>
-		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"/>
-		<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet"/>
-		<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+		<link rel="icon" type="image/jpeg" href="/static/images/KingBee.jpeg"/>
+		<link href="/static/css/BSPlus.css" rel="stylesheet"/>
+		<link href="/static/vendor/bootstrap-icons.min.css" rel="stylesheet"/>
+		<script src="/static/vendor/htmx.min.js"></script>
+		<link href="/static/vendor/quill.snow.css" rel="stylesheet"/>
+		<link href="/static/js/sml/sml.css" rel="stylesheet"/>
 		<link href="/static/css/app.css" rel="stylesheet"/>
 	</head>
-	<body>
-		<nav class="navbar navbar-expand-lg sticky-top">
+	<body hx-indicator="#loading-indicator">
+		<div id="loading-indicator"></div>
+		<a class="visually-hidden-focusable" href="#main-content">Skip to main content</a>
+		<nav class="navbar navbar-expand-lg sticky-top" aria-label="Main navigation">
 			<div class="container-fluid px-3">
 				<a class="navbar-brand d-flex align-items-center" href="/"
 					hx-get="/" hx-target="#main-content" hx-push-url="true">
 					<i class="bi bi-house-heart fs-4 me-2"></i>
 					<span>Domicile</span>
 				</a>
-				<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-					aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-					<span class="navbar-toggler-icon"></span>
-				</button>
-				<div class="collapse navbar-collapse" id="navbarNav">
-					<ul class="navbar-nav me-auto">
-						<li class="nav-item">
-							<a class="nav-link" href="/products"
-								hx-get="/products" hx-target="#main-content" hx-push-url="true">
-								<i class="bi bi-box-seam me-1"></i>Products
-							</a>
-						</li>
-						<li class="nav-item">
-							<a class="nav-link" href="/locations"
-								hx-get="/locations" hx-target="#main-content" hx-push-url="true">
-								<i class="bi bi-geo-alt me-1"></i>Locations
-							</a>
-						</li>
-						<li class="nav-item">
-							<a class="nav-link" href="/shopping"
-								hx-get="/shopping" hx-target="#main-content" hx-push-url="true">
-								<i class="bi bi-cart3 me-1"></i>Shopping
-							</a>
-						</li>
-						<li class="nav-item">
-							<a class="nav-link" href="/chores"
-								hx-get="/chores" hx-target="#main-content" hx-push-url="true">
-								<i class="bi bi-check2-square me-1"></i>Chores
-							</a>
-						</li>
-						<li class="nav-item">
-							<a class="nav-link" href="/recipes"
-								hx-get="/recipes" hx-target="#main-content" hx-push-url="true">
-								<i class="bi bi-journal-text me-1"></i>Recipes
-							</a>
-						</li>
-						<li class="nav-item">
-							<a class="nav-link" href="/equipment"
-								hx-get="/equipment" hx-target="#main-content" hx-push-url="true">
-								<i class="bi bi-tools me-1"></i>Equipment
-							</a>
-						</li>
-						<li class="nav-item dropdown">
-							<a class="nav-link dropdown-toggle" href="#" role="button"
-								data-bs-toggle="dropdown" aria-expanded="false">
-								<i class="bi bi-three-dots me-1"></i>More
-							</a>
-							<ul class="dropdown-menu dropdown-menu-dark">
-								<li>
-									<a class="dropdown-item" href="/tasks"
-										hx-get="/tasks" hx-target="#main-content" hx-push-url="true">
-										<i class="bi bi-list-task me-2"></i>Tasks
-									</a>
-								</li>
-								<li>
-									<a class="dropdown-item" href="/batteries"
-										hx-get="/batteries" hx-target="#main-content" hx-push-url="true">
-										<i class="bi bi-battery-half me-2"></i>Batteries
-									</a>
-								</li>
-								<li>
-									<a class="dropdown-item" href="/meal-plan"
-										hx-get="/meal-plan" hx-target="#main-content" hx-push-url="true">
-										<i class="bi bi-calendar-week me-2"></i>Meal Plan
-									</a>
-								</li>
-							</ul>
-						</li>
-					</ul>
-					<ul class="navbar-nav ms-auto align-items-center">
-						<li class="nav-item me-2">
-							<a class="nav-link" href="/settings"
-								hx-get="/settings" hx-target="#main-content" hx-push-url="true"
-								title="Settings">
-								<i class="bi bi-gear-fill fs-5"></i>
-							</a>
-						</li>
-						<li class="nav-item dropdown">
-							<a class="nav-link dropdown-toggle d-flex align-items-center p-0" href="#"
-								role="button" data-bs-toggle="dropdown" aria-expanded="false"
-								title="User menu">
-								<div class="user-avatar d-flex align-items-center justify-content-center rounded-circle bg-primary text-white"
-									style="width:34px;height:34px;font-size:0.85rem;">
-									<i class="bi bi-person-fill"></i>
-								</div>
-							</a>
-							<ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
-								<li>
-									<a class="dropdown-item" href="/profile"
-										hx-get="/profile" hx-target="#main-content" hx-push-url="true">
-										<i class="bi bi-person me-2"></i>My Profile
-									</a>
-								</li>
-								<li><hr class="dropdown-divider"/></li>
-								<li>
-									<a class="dropdown-item" href="/logout">
-										<i class="bi bi-box-arrow-right me-2"></i>Sign Out
-									</a>
-								</li>
-							</ul>
-						</li>
-					</ul>
+				<div class="d-flex flex-wrap align-items-center gap-1 flex-grow-1">
+					<!-- Product dropdown -->
+					<div class="dropdown">
+						<sml-reactive-button class="smlRB btn btn-sm btn-outline-light border-0 text-white text-nowrap dropdown-toggle"
+							data-text="Product" data-icon="bi bi-box-seam" data-button-type="menu"
+							data-bs-toggle="dropdown" aria-expanded="false" title="Product management"></sml-reactive-button>
+						<ul class="dropdown-menu dropdown-menu-dark">
+							<li><sml-reactive-button data-url="/products" data-text="Product" data-icon="bi bi-box-seam"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Products" data-active-by-url="true"></sml-reactive-button></li>
+							<li><sml-reactive-button data-url="/locations" data-text="Location" data-icon="bi bi-geo-alt"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Locations" data-active-by-url="true"></sml-reactive-button></li>
+							<li><sml-reactive-button data-url="/stores" data-text="Store" data-icon="bi bi-shop"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Stores" data-active-by-url="true"></sml-reactive-button></li>
+							<li><sml-reactive-button data-url="/quantity-units" data-text="Unit" data-icon="bi bi-rulers"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Quantity Units" data-active-by-url="true"></sml-reactive-button></li>
+						</ul>
+					</div>
+					<!-- Shopping dropdown -->
+					<div class="dropdown">
+						<sml-reactive-button class="smlRB btn btn-sm btn-outline-light border-0 text-white text-nowrap dropdown-toggle"
+							data-text="Shopping" data-icon="bi bi-cart3" data-button-type="menu"
+							data-bs-toggle="dropdown" aria-expanded="false" title="Shopping"></sml-reactive-button>
+						<ul class="dropdown-menu dropdown-menu-dark">
+							<li><sml-reactive-button data-url="/shopping" data-text="List" data-icon="bi bi-cart3"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Shopping List" data-active-by-url="true"></sml-reactive-button></li>
+							<li><sml-reactive-button data-url="/recipes" data-text="Recipes" data-icon="bi bi-journal-text"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Recipes" data-active-by-url="true"></sml-reactive-button></li>
+							<li><sml-reactive-button data-url="/meal-plan" data-text="Meal Plan" data-icon="bi bi-calendar-week"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Meal Plan" data-active-by-url="true"></sml-reactive-button></li>
+						</ul>
+					</div>
+					<!-- Stock dropdown -->
+					<div class="dropdown">
+						<sml-reactive-button class="smlRB btn btn-sm btn-outline-light border-0 text-white text-nowrap dropdown-toggle"
+							data-text="Stock" data-icon="bi bi-archive" data-button-type="menu"
+							data-bs-toggle="dropdown" aria-expanded="false" title="Stock management"></sml-reactive-button>
+						<ul class="dropdown-menu dropdown-menu-dark">
+							<li><sml-reactive-button data-url="/stock" data-text="Inventory" data-icon="bi bi-archive"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Stock Inventory" data-active-by-url="true"></sml-reactive-button></li>
+							<li><sml-reactive-button data-url="/stock/purchase" data-text="Purchase" data-icon="bi bi-bag-plus"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Purchase" data-active-by-url="true"></sml-reactive-button></li>
+							<li><sml-reactive-button data-url="/stock/consume" data-text="Consume" data-icon="bi bi-bag-dash"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Consume" data-active-by-url="true"></sml-reactive-button></li>
+							<li><sml-reactive-button data-url="/stock/transfer" data-text="Transfer" data-icon="bi bi-arrow-left-right"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Transfer" data-active-by-url="true"></sml-reactive-button></li>
+						</ul>
+					</div>
+					<!-- Inventory (Equipment) -->
+					<sml-reactive-button data-url="/inventory" data-text="Inventory" data-icon="bi bi-tools"
+						class="smlRB btn btn-sm btn-outline-light border-0 text-white text-nowrap" title="Equipment" data-active-by-url="true"></sml-reactive-button>
+					<!-- Tasking dropdown -->
+					<div class="dropdown">
+						<sml-reactive-button class="smlRB btn btn-sm btn-outline-light border-0 text-white text-nowrap dropdown-toggle"
+							data-text="Tasking" data-icon="bi bi-list-task" data-button-type="menu"
+							data-bs-toggle="dropdown" aria-expanded="false" title="Tasks and Chores"></sml-reactive-button>
+						<ul class="dropdown-menu dropdown-menu-dark">
+							<li><sml-reactive-button data-url="/tasks" data-text="Tasks" data-icon="bi bi-list-task"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Tasks" data-active-by-url="true"></sml-reactive-button></li>
+							<li><sml-reactive-button data-url="/chores" data-text="Chores" data-icon="bi bi-check2-square"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Chores" data-active-by-url="true"></sml-reactive-button></li>
+						</ul>
+					</div>
+					<!-- Batteries dropdown -->
+					<div class="dropdown">
+						<sml-reactive-button class="smlRB btn btn-sm btn-outline-light border-0 text-white text-nowrap dropdown-toggle"
+							data-text="Batteries" data-icon="bi bi-battery-half" data-button-type="menu"
+							data-bs-toggle="dropdown" aria-expanded="false" title="Battery tracking"></sml-reactive-button>
+						<ul class="dropdown-menu dropdown-menu-dark">
+							<li><sml-reactive-button data-url="/batteries" data-text="Battery" data-icon="bi bi-battery-half"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Batteries" data-active-by-url="true"></sml-reactive-button></li>
+							<li><sml-reactive-button data-url="/batteries/overview" data-text="Overview" data-icon="bi bi-graph-up"
+								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Battery Overview" data-active-by-url="true"></sml-reactive-button></li>
+						</ul>
+					</div>
+					<!-- User menu (right side) -->
+					<div class="ms-auto d-flex gap-1 align-items-center">
+						<div class="dropdown" id="navbar-user" hx-get="/api/navbar-user" hx-trigger="load" hx-swap="innerHTML"></div>
+					</div>
 				</div>
 			</div>
 		</nav>
-		<main class="container-fluid px-3 px-md-4" id="main-content">
+		<main class="container-fluid px-3 px-md-4" id="main-content" role="main">
 			{ children... }
 		</main>
-		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+		<div id="htmx-live-region" aria-live="polite" aria-atomic="true"></div>
+		<!-- Confirm Modal -->
+		<div class="modal fade" id="confirm-modal" tabindex="-1" aria-hidden="true">
+			<div class="modal-dialog modal-sm modal-dialog-centered">
+				<div class="modal-content">
+					<div class="modal-body text-center py-4">
+						<i class="bi bi-exclamation-triangle fs-1 text-warning d-block mb-3"></i>
+						<p id="confirm-message" class="mb-0">Are you sure?</p>
+					</div>
+					<div class="modal-footer justify-content-center border-0 pt-0">
+						<button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+						<button type="button" class="btn btn-danger btn-sm" id="confirm-yes">Yes, do it</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script src="/static/vendor/bootstrap.bundle.min.js"></script>
+		<script src="/static/vendor/quill.js"></script>
+		<script type="module" src="/static/js/sml/smlReactiveButton.js"></script>
+		<script>
+			// Override htmx confirm with Bootstrap modal.
+			document.body.addEventListener('htmx:confirm', function(e) {
+				if (!e.detail.question) return;
+				e.preventDefault();
+				var modal = new bootstrap.Modal(document.getElementById('confirm-modal'));
+				document.getElementById('confirm-message').textContent = e.detail.question;
+				var yesBtn = document.getElementById('confirm-yes');
+				// Clone to remove old listeners.
+				var newBtn = yesBtn.cloneNode(true);
+				yesBtn.parentNode.replaceChild(newBtn, yesBtn);
+				newBtn.id = 'confirm-yes';
+				newBtn.addEventListener('click', function() {
+					modal.hide();
+					e.detail.issueRequest(true);
+				});
+				modal.show();
+			});
+
+			// Initialize Bootstrap tooltips on page load and after htmx swaps.
+			function initTooltips() {
+				document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+					if (!bootstrap.Tooltip.getInstance(el)) {
+						new bootstrap.Tooltip(el);
+					}
+				});
+			}
+			document.addEventListener('DOMContentLoaded', initTooltips);
+			document.body.addEventListener('htmx:afterSwap', initTooltips);
+
+			// Initialize Quill WYSIWYG editors on elements with class 'wysiwyg'.
+			function initWysiwyg() {
+				document.querySelectorAll('.wysiwyg').forEach(function(el) {
+					if (el.dataset.quillInit) return;
+					el.dataset.quillInit = 'true';
+					var hidden = el.querySelector('.wysiwyg-value');
+					var editorDiv = el.querySelector('.wysiwyg-editor');
+					var q = new Quill(editorDiv, {
+						theme: 'snow',
+						modules: {
+							toolbar: [
+								[{'size': ['small', false, 'large', 'huge']}],
+								['bold', 'italic', 'underline', 'strike'],
+								[{'color': []}, {'background': []}],
+								[{'list': 'ordered'}, {'list': 'bullet'}],
+								[{'align': []}],
+								['blockquote', 'code-block'],
+								['link', 'image', 'video'],
+								[{'table': []}],
+								['clean']
+							]
+						}
+					});
+					// Set initial content.
+					if (hidden.value) {
+						q.root.innerHTML = hidden.value;
+					}
+					// Sync to hidden input before form submit.
+					var form = el.closest('form');
+					if (form) {
+						form.addEventListener('htmx:configRequest', function() {
+							hidden.value = q.root.innerHTML === '<p><br></p>' ? '' : q.root.innerHTML;
+						});
+						form.addEventListener('submit', function() {
+							hidden.value = q.root.innerHTML === '<p><br></p>' ? '' : q.root.innerHTML;
+						});
+					}
+				});
+			}
+			document.addEventListener('DOMContentLoaded', initWysiwyg);
+			document.body.addEventListener('htmx:afterSwap', initWysiwyg);
+
+			// Save/restore scroll position when navigating away from list pages.
+			var _listScroll = null;
+			var _listPath = null;
+
+			// Save scroll before any htmx request that leaves a list page.
+			document.body.addEventListener('htmx:beforeRequest', function(e) {
+				var path = location.pathname;
+				// Only save for known list pages.
+				var listPages = ['/products', '/locations', '/shopping', '/inventory', '/recipes',
+					'/product-groups', '/quantity-units', '/stores', '/stock'];
+				if (listPages.indexOf(path) >= 0) {
+					_listScroll = window.scrollY;
+					_listPath = path;
+				}
+			});
+
+			// Restore scroll when returning to the saved list page.
+			document.body.addEventListener('htmx:afterSwap', function(e) {
+				if (_listScroll !== null && _listPath !== null) {
+					// Check if we're back on the list page.
+					var newPath = location.pathname;
+					if (newPath === _listPath) {
+						var scroll = _listScroll;
+						_listScroll = null;
+						_listPath = null;
+						setTimeout(function() { window.scrollTo(0, scroll); }, 50);
+					}
+				}
+			});
+
+			// Announce page changes to screen readers.
+			document.body.addEventListener('htmx:afterSwap', function(e) {
+				if (e.detail.target && e.detail.target.id === 'main-content') {
+					var heading = e.detail.target.querySelector('[role="heading"]');
+					var region = document.getElementById('htmx-live-region');
+					if (heading && region) {
+						region.textContent = heading.textContent + ' loaded';
+					}
+				}
+			});
+
+			// Client-side table search — filters rows by text content.
+			function filterTable(query, tbodyId) {
+				var tbody = document.getElementById(tbodyId);
+				if (!tbody) return;
+				var rows = tbody.querySelectorAll('tr');
+				var q = query.toLowerCase();
+				rows.forEach(function(row) {
+					var text = row.textContent.toLowerCase();
+					row.style.display = text.includes(q) ? '' : 'none';
+				});
+			}
+
+			// Client-side card search — filters recipe cards.
+			function filterCards(query) {
+				var cards = document.querySelectorAll('.recipe-card');
+				var q = query.toLowerCase();
+				cards.forEach(function(card) {
+					var text = card.textContent.toLowerCase();
+					card.style.display = text.includes(q) ? '' : 'none';
+				});
+			}
+
+			// Wake Lock API — keeps screen on for shopping.
+			var wakeLock = null;
+			async function toggleWakeLock(on) {
+				if (on && 'wakeLock' in navigator) {
+					try {
+						wakeLock = await navigator.wakeLock.request('screen');
+						wakeLock.addEventListener('release', function() {
+							var cb = document.getElementById('wake-lock-toggle') || document.getElementById('wake-lock-toggle-shop');
+							if (cb) cb.checked = false;
+						});
+					} catch (e) {
+						console.log('Wake Lock failed:', e);
+					}
+				} else if (wakeLock) {
+					wakeLock.release();
+					wakeLock = null;
+				}
+			}
+
+			// Fullscreen + orientation lock for shop mode.
+			function goFullscreen() {
+				var el = document.documentElement;
+				var rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+				if (rfs) {
+					rfs.call(el).then(function() {
+						if (screen.orientation && screen.orientation.lock) {
+							screen.orientation.lock('portrait').catch(function(){});
+						}
+					}).catch(function(){});
+				}
+			}
+
+			// Group assign for ungrouped shopping items.
+			var _groupCache = null;
+
+			// Store page — group form management.
+			function showGroupForm() {
+				document.getElementById('group-form-modal').classList.remove('d-none');
+				document.getElementById('group-list').classList.add('d-none');
+				document.getElementById('gf-name').value = '';
+				document.getElementById('gf-desc').value = '';
+				document.getElementById('gf-id').value = '';
+				document.getElementById('gf-title').textContent = 'New Group';
+				document.getElementById('gf-name').focus();
+			}
+			function hideGroupForm() {
+				document.getElementById('group-form-modal').classList.add('d-none');
+				document.getElementById('group-list').classList.remove('d-none');
+			}
+			function editGroupForm(btn) {
+				document.getElementById('group-form-modal').classList.remove('d-none');
+				document.getElementById('group-list').classList.add('d-none');
+				document.getElementById('gf-id').value = btn.dataset.gid;
+				document.getElementById('gf-name').value = btn.dataset.gname;
+				document.getElementById('gf-desc').value = btn.dataset.gdesc;
+				document.getElementById('gf-title').textContent = 'Edit Group';
+				document.getElementById('gf-name').focus();
+			}
+			function saveGroupForm() {
+				var id = document.getElementById('gf-id').value;
+				var name = document.getElementById('gf-name').value;
+				var desc = document.getElementById('gf-desc').value;
+				var storeId = document.getElementById('gf-save-btn').dataset.storeId;
+				if (!name) return;
+				var method = id ? 'PUT' : 'POST';
+				var url = id ? '/product-groups/' + id : '/product-groups';
+				fetch(url, {
+					method: method,
+					headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+					body: 'name=' + encodeURIComponent(name) + '&description=' + encodeURIComponent(desc) + '&store_id=' + storeId
+				}).then(function() {
+					// Reload the store edit page to refresh the group list.
+					htmx.ajax('GET', '/stores/' + storeId + '/edit', {target: '#main-content', swap: 'innerHTML'});
+				});
+			}
+			async function loadGroups() {
+				if (_groupCache) return _groupCache;
+				var resp = await fetch('/api/product-groups');
+				_groupCache = await resp.json();
+				return _groupCache;
+			}
+			document.addEventListener('click', async function(e) {
+				var btn = e.target.closest('.ga-btn');
+				if (!btn) return;
+				var wrap = btn.closest('.group-assign-wrap');
+				var form = wrap.querySelector('.group-assign-form');
+				var sel = wrap.querySelector('.ga-select');
+				if (!form.classList.contains('d-none')) {
+					form.classList.add('d-none');
+					return;
+				}
+				var groups = await loadGroups();
+				sel.innerHTML = '<option value="">Pick group...</option>';
+				groups.forEach(function(g) {
+					sel.innerHTML += '<option value="' + g.ID + '">' + g.Name + '</option>';
+				});
+				form.classList.remove('d-none');
+				sel.focus();
+			});
+			document.addEventListener('change', function(e) {
+				var sel = e.target.closest('.ga-select');
+				if (!sel || !sel.value) return;
+				var wrap = sel.closest('.group-assign-wrap');
+				var itemId = wrap.dataset.itemId;
+				fetch('/shopping/' + itemId + '/assign-group', {
+					method: 'POST',
+					headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+					body: 'product_group_id=' + sel.value
+				}).then(function() {
+					wrap.innerHTML = '<span class="badge text-bg-success"><i class="bi bi-check"></i> Assigned</span>';
+				});
+			});
+		</script>
 	</body>
 	</html>
 }

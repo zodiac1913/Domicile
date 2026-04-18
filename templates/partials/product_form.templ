@@ -1,0 +1,396 @@
+package partials
+
+import (
+	"Domicile/internal/models"
+	"strconv"
+	"fmt"
+)
+
+func fv(fields []models.ProductFormField, name string) bool {
+	for _, f := range fields {
+		if f.Name == name { return true }
+	}
+	return false
+}
+
+func fdesc(fields []models.ProductFormField, name string) string {
+	for _, f := range fields {
+		if f.Name == name { return f.Description }
+	}
+	return ""
+}
+
+func fn(fields []models.ProductFormField, name string) string {
+	for _, f := range fields {
+		if f.Name == name { return f.DisplayName }
+	}
+	return name
+}
+
+func itoa(v int) string { return strconv.Itoa(v) }
+func ftoa(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
+func ptoi(v *int) string {
+	if v != nil { return strconv.Itoa(*v) }
+	return "0"
+}
+func pint(v *int) int {
+	if v != nil { return *v }
+	return 0
+}
+
+templ formLabel(id string, label string, desc string) {
+	<label for={ id } class="form-label">
+		{ label }
+		if desc != "" {
+			<i class="bi bi-info-circle text-body-secondary ms-1"
+				data-bs-toggle="tooltip" data-bs-placement="top"
+				title={ desc }></i>
+		}
+	</label>
+}
+
+func isChecked(v int) bool { return v == 1 }
+
+func prodDesc(p *models.ProductDetail) string {
+	if p != nil { return p.Description }
+	return ""
+}
+
+templ ProductForm(product *models.ProductDetail, fd models.ProductFormData) {
+	<div class="mb-3">
+		<button class="btn btn-sm btn-outline-secondary"
+			hx-get="/products" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/products">
+			<i class="bi bi-arrow-left me-1"></i>Back to Products
+		</button>
+	</div>
+	if product != nil {
+		<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-pencil me-2"></i>Edit Product</div>
+	} else {
+		<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-plus-lg me-2"></i>New Product</div>
+	}
+	<div class="card">
+		<div class="card-body">
+			if product != nil {
+				<form hx-post={ "/products/" + product.IDStr() + "/update" }
+					hx-encoding="multipart/form-data"
+					hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/products">
+					@productFormInner(product, fd)
+				</form>
+			} else {
+				<form hx-post="/products"
+					hx-encoding="multipart/form-data"
+					hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/products">
+					@productFormInner(nil, fd)
+				</form>
+			}
+		</div>
+	</div>
+}
+
+templ productFormInner(p *models.ProductDetail, fd models.ProductFormData) {
+	<div class="row g-3">
+		<!-- Name — always visible -->
+		<div class="col-md-4">
+			@formLabel("name", fn(fd.Fields, "name"), fdesc(fd.Fields, "name"))
+			<input type="text" class="form-control" id="name" name="name" required
+				if p != nil { value={ p.Name } }
+			/>
+		</div>
+		<!-- Location — always visible -->
+		<div class="col-md-3">
+			@formLabel("location_id", "Location", "The default storage location for this product")
+			<select class="form-select" id="location_id" name="location_id" required>
+				for _, loc := range fd.Locations {
+					<option value={ itoa(loc.ID) }
+						if p != nil && p.LocationID == loc.ID { selected }
+					>{ loc.Name }</option>
+				}
+			</select>
+		</div>
+		<!-- Stock quantity -->
+		<div class="col-md-2">
+			@formLabel("stock_quantity", "Initial Qty", "Stock quantity to add on creation")
+			<input type="number" class="form-control" id="stock_quantity" name="stock_quantity" min="0"
+				if p != nil { value={ itoa(p.StockQuantity) } } else { value="1" }
+			/>
+		</div>
+		<!-- Expires -->
+		<div class="col-md-3">
+			@formLabel("stock_best_before", "Expires", "Best-before or expiration date")
+			<input type="date" class="form-control" id="stock_best_before" name="stock_best_before"
+				if p != nil && p.StockBestBefore != "" { value={ p.StockBestBefore } }
+			/>
+		</div>
+		<!-- Product Group -->
+		if fv(fd.Fields, "product_group") {
+			<div class="col-md-3">
+				@formLabel("product_group_id", fn(fd.Fields, "product_group"), fdesc(fd.Fields, "product_group"))
+				<select class="form-select" id="product_group_id" name="product_group_id">
+					<option value="">— None —</option>
+					for _, g := range fd.ProductGroups {
+						<option value={ itoa(g.ID) }
+							if p != nil && pint(p.ProductGroupID) == g.ID { selected }
+						>{ g.Name }</option>
+					}
+				</select>
+			</div>
+		}
+		if fv(fd.Fields, "description") {
+			<div class="col-md-6">
+				@Wysiwyg("description", fn(fd.Fields, "description"), prodDesc(p))
+			</div>
+		}
+		if fv(fd.Fields, "barcode") {
+			<div class="col-md-3">
+				@formLabel("barcode", fn(fd.Fields, "barcode"), fdesc(fd.Fields, "barcode"))
+				<input type="text" class="form-control" id="barcode" name="barcode"
+					if p != nil { value={ p.Barcode } }
+				/>
+			</div>
+		}
+		if fv(fd.Fields, "last_price") {
+			<div class="col-md-2">
+				@formLabel("last_price", fn(fd.Fields, "last_price"), fdesc(fd.Fields, "last_price"))
+				<div class="input-group">
+					<span class="input-group-text">$</span>
+					<input type="number" class="form-control" id="last_price" name="last_price" min="0" step="0.01"
+						if p != nil { value={ p.LastPriceStr() } }
+					/>
+				</div>
+			</div>
+		}
+		if fv(fd.Fields, "min_stock_amount") {
+			<div class="col-md-2">
+				@formLabel("min_stock_amount", fn(fd.Fields, "min_stock_amount"), fdesc(fd.Fields, "min_stock_amount"))
+				<input type="number" class="form-control" id="min_stock_amount" name="min_stock_amount" min="0"
+					if p != nil { value={ itoa(p.MinStockAmount) } } else { value="0" }
+				/>
+			</div>
+		}
+		if fv(fd.Fields, "calories") {
+			<div class="col-md-2">
+				@formLabel("calories", fn(fd.Fields, "calories"), fdesc(fd.Fields, "calories"))
+				<input type="number" class="form-control" id="calories" name="calories" min="0"
+					if p != nil { value={ ptoi(p.Calories) } } else { value="0" }
+				/>
+			</div>
+		}
+		if fv(fd.Fields, "default_best_before_days") {
+			<div class="col-md-2">
+				@formLabel("default_best_before_days", fn(fd.Fields, "default_best_before_days"), fdesc(fd.Fields, "default_best_before_days"))
+				<input type="number" class="form-control" id="default_best_before_days" name="default_best_before_days" min="-1"
+					if p != nil { value={ itoa(p.DefaultBestBeforeDays) } } else { value="0" }
+				/>
+			</div>
+		}
+		if fv(fd.Fields, "default_best_before_days_after_open") {
+			<div class="col-md-2">
+				@formLabel("default_best_before_days_after_open", fn(fd.Fields, "default_best_before_days_after_open"), fdesc(fd.Fields, "default_best_before_days_after_open"))
+				<input type="number" class="form-control" id="default_best_before_days_after_open" name="default_best_before_days_after_open" min="0"
+					if p != nil { value={ itoa(p.DefaultBestBeforeDaysAfterOpen) } } else { value="0" }
+				/>
+			</div>
+		}
+		if fv(fd.Fields, "default_best_before_days_after_freezing") {
+			<div class="col-md-2">
+				@formLabel("default_best_before_days_after_freezing", fn(fd.Fields, "default_best_before_days_after_freezing"), fdesc(fd.Fields, "default_best_before_days_after_freezing"))
+				<input type="number" class="form-control" id="default_best_before_days_after_freezing" name="default_best_before_days_after_freezing" min="-1"
+					if p != nil { value={ itoa(p.DefaultBestBeforeDaysAfterFreezing) } } else { value="0" }
+				/>
+			</div>
+		}
+		if fv(fd.Fields, "default_best_before_days_after_thawing") {
+			<div class="col-md-2">
+				@formLabel("default_best_before_days_after_thawing", fn(fd.Fields, "default_best_before_days_after_thawing"), fdesc(fd.Fields, "default_best_before_days_after_thawing"))
+				<input type="number" class="form-control" id="default_best_before_days_after_thawing" name="default_best_before_days_after_thawing" min="0"
+					if p != nil { value={ itoa(p.DefaultBestBeforeDaysAfterThawing) } } else { value="0" }
+				/>
+			</div>
+		}
+		if fv(fd.Fields, "quick_consume_amount") {
+			<div class="col-md-2">
+				@formLabel("quick_consume_amount", fn(fd.Fields, "quick_consume_amount"), fdesc(fd.Fields, "quick_consume_amount"))
+				<input type="number" class="form-control" id="quick_consume_amount" name="quick_consume_amount" min="0" step="0.1"
+					if p != nil { value={ ftoa(p.QuickConsumeAmount) } } else { value="1" }
+				/>
+			</div>
+		}
+		if fv(fd.Fields, "quick_open_amount") {
+			<div class="col-md-2">
+				@formLabel("quick_open_amount", fn(fd.Fields, "quick_open_amount"), fdesc(fd.Fields, "quick_open_amount"))
+				<input type="number" class="form-control" id="quick_open_amount" name="quick_open_amount" min="0" step="0.1"
+					if p != nil { value={ ftoa(p.QuickOpenAmount) } } else { value="1" }
+				/>
+			</div>
+		}
+		if fv(fd.Fields, "tare_weight") {
+			<div class="col-md-2">
+				@formLabel("tare_weight", fn(fd.Fields, "tare_weight"), fdesc(fd.Fields, "tare_weight"))
+				<input type="number" class="form-control" id="tare_weight" name="tare_weight" min="0" step="0.01"
+					if p != nil { value={ ftoa(p.TareWeight) } } else { value="0" }
+				/>
+			</div>
+		}
+		if fv(fd.Fields, "qu_factor_purchase_to_stock") {
+			<div class="col-md-2">
+				@formLabel("qu_factor_purchase_to_stock", fn(fd.Fields, "qu_factor_purchase_to_stock"), fdesc(fd.Fields, "qu_factor_purchase_to_stock"))
+				<input type="number" class="form-control" id="qu_factor_purchase_to_stock" name="qu_factor_purchase_to_stock" min="0" step="0.1"
+					if p != nil { value={ ftoa(p.QuFactorPurchaseToStock) } } else { value="1" }
+				/>
+			</div>
+		}
+		<!-- Checkbox fields -->
+		<div class="col-12 mt-3">
+			<div class="row g-3">
+				if fv(fd.Fields, "active") {
+					@checkboxField("active", fn(fd.Fields, "active"), fdesc(fd.Fields, "active"), p == nil || isChecked(p.Active))
+				}
+				if fv(fd.Fields, "enable_tare_weight_handling") {
+					@checkboxField("enable_tare_weight_handling", fn(fd.Fields, "enable_tare_weight_handling"), fdesc(fd.Fields, "enable_tare_weight_handling"), p != nil && isChecked(p.EnableTareWeightHandling))
+				}
+				if fv(fd.Fields, "should_not_be_frozen") {
+					@checkboxField("should_not_be_frozen", fn(fd.Fields, "should_not_be_frozen"), fdesc(fd.Fields, "should_not_be_frozen"), p != nil && isChecked(p.ShouldNotBeFrozen))
+				}
+				if fv(fd.Fields, "treat_opened_as_out_of_stock") {
+					@checkboxField("treat_opened_as_out_of_stock", fn(fd.Fields, "treat_opened_as_out_of_stock"), fdesc(fd.Fields, "treat_opened_as_out_of_stock"), p == nil || isChecked(p.TreatOpenedAsOutOfStock))
+				}
+				if fv(fd.Fields, "hide_on_stock_overview") {
+					@checkboxField("hide_on_stock_overview", fn(fd.Fields, "hide_on_stock_overview"), fdesc(fd.Fields, "hide_on_stock_overview"), p != nil && isChecked(p.HideOnStockOverview))
+				}
+				if fv(fd.Fields, "no_own_stock") {
+					@checkboxField("no_own_stock", fn(fd.Fields, "no_own_stock"), fdesc(fd.Fields, "no_own_stock"), p != nil && isChecked(p.NoOwnStock))
+				}
+				if fv(fd.Fields, "move_on_open") {
+					@checkboxField("move_on_open", fn(fd.Fields, "move_on_open"), fdesc(fd.Fields, "move_on_open"), p != nil && isChecked(p.MoveOnOpen))
+				}
+				if fv(fd.Fields, "disable_open") {
+					@checkboxField("disable_open", fn(fd.Fields, "disable_open"), fdesc(fd.Fields, "disable_open"), p != nil && isChecked(p.DisableOpen))
+				}
+				if fv(fd.Fields, "cumulate_min_stock_amount_of_sub_products") {
+					@checkboxField("cumulate_min_stock_amount_of_sub_products", fn(fd.Fields, "cumulate_min_stock_amount_of_sub_products"), fdesc(fd.Fields, "cumulate_min_stock_amount_of_sub_products"), p != nil && isChecked(p.CumulateMinStockAmountOfSubProducts))
+				}
+				if fv(fd.Fields, "not_check_stock_fulfillment_for_recipes") {
+					@checkboxField("not_check_stock_fulfillment_for_recipes", fn(fd.Fields, "not_check_stock_fulfillment_for_recipes"), fdesc(fd.Fields, "not_check_stock_fulfillment_for_recipes"), p != nil && isChecked(p.NotCheckStockFulfillmentForRecipes))
+				}
+				if fv(fd.Fields, "auto_reprint_stock_label") {
+					@checkboxField("auto_reprint_stock_label", fn(fd.Fields, "auto_reprint_stock_label"), fdesc(fd.Fields, "auto_reprint_stock_label"), p != nil && isChecked(p.AutoReprintStockLabel))
+				}
+			</div>
+		</div>
+		<!-- Picture -->
+		if fv(fd.Fields, "picture") {
+			<div class="col-md-4">
+				<label for="picture" class="form-label">Picture</label>
+				if p != nil && p.PictureFileName != "" {
+					<div class="mb-2">
+						<img src={ "/images/products/" + p.PictureFileName }
+							class="img-thumbnail" style="max-height: 150px;" alt="Product picture"/>
+					</div>
+				}
+				<input type="file" class="form-control" id="picture" name="picture" accept="image/*"/>
+			</div>
+		}
+		<!-- Submit -->
+		<div class="col-12 mt-3">
+			<button type="submit" class="btn btn-success me-2">
+				<i class="bi bi-check-lg me-1"></i>
+				if p != nil {
+					Save Changes
+				} else {
+					Create Product
+				}
+			</button>
+			<button type="button" class="btn btn-outline-secondary"
+				hx-get="/products" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/products">
+				Cancel
+			</button>
+		</div>
+	</div>
+}
+
+templ checkboxField(id string, label string, desc string, checked bool) {
+	<div class="col-md-4 col-lg-3">
+		<div class="form-check">
+			<input class="form-check-input" type="checkbox" id={ id } name={ id } value="1"
+				if checked { checked }
+			/>
+			<label class="form-check-label" for={ id }>
+				{ label }
+				if desc != "" {
+					<i class="bi bi-info-circle text-body-secondary ms-1"
+						data-bs-toggle="tooltip" data-bs-placement="top"
+						title={ desc }></i>
+				}
+			</label>
+		</div>
+	</div>
+}
+
+templ ProductView(p models.ProductDetail, fd models.ProductFormData) {
+	<div class="mb-3">
+		<button class="btn btn-sm btn-outline-secondary"
+			hx-get="/products" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/products">
+			<i class="bi bi-arrow-left me-1"></i>Back to Products
+		</button>
+	</div>
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<div role="heading" aria-level="3" class="h3"><i class="bi bi-box-seam me-2"></i>{ p.Name }</div>
+		<div>
+			<button class="btn btn-warning me-2"
+				hx-get={ "/products/" + p.IDStr() + "/edit" }
+				hx-target="#products-area" hx-swap="innerHTML">
+				<i class="bi bi-pencil me-1"></i>Edit
+			</button>
+			<button class="btn btn-danger"
+				hx-delete={ "/products/" + p.IDStr() }
+				hx-target="#main-content" hx-swap="innerHTML"
+				hx-confirm="Delete this product?" hx-push-url="/products">
+				<i class="bi bi-trash me-1"></i>Delete
+			</button>
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-body">
+			<dl class="row mb-0">
+				<dt class="col-sm-4">Location</dt>
+				<dd class="col-sm-8">{ p.LocationName }</dd>
+				<dt class="col-sm-4">Stock Quantity</dt>
+				<dd class="col-sm-8">{ itoa(p.StockQuantity) }</dd>
+				if p.StockBestBefore != "" {
+					<dt class="col-sm-4">Expires</dt>
+					<dd class="col-sm-8">{ p.StockBestBefore }</dd>
+				}
+				if fv(fd.Fields, "description") && p.Description != "" {
+					<dt class="col-sm-4">{ fn(fd.Fields, "description") }</dt>
+					<dd class="col-sm-8">@templ.Raw(p.Description)</dd>
+				}
+				if fv(fd.Fields, "barcode") && p.Barcode != "" {
+					<dt class="col-sm-4">{ fn(fd.Fields, "barcode") }</dt>
+					<dd class="col-sm-8">{ p.Barcode }</dd>
+				}
+				if fv(fd.Fields, "min_stock_amount") {
+					<dt class="col-sm-4">{ fn(fd.Fields, "min_stock_amount") }</dt>
+					<dd class="col-sm-8">{ itoa(p.MinStockAmount) }</dd>
+				}
+				if fv(fd.Fields, "calories") && p.Calories != nil && *p.Calories > 0 {
+					<dt class="col-sm-4">{ fn(fd.Fields, "calories") }</dt>
+					<dd class="col-sm-8">{ ptoi(p.Calories) }</dd>
+				}
+				if fv(fd.Fields, "default_best_before_days") && p.DefaultBestBeforeDays != 0 {
+					<dt class="col-sm-4">{ fn(fd.Fields, "default_best_before_days") }</dt>
+					<dd class="col-sm-8">{ fmt.Sprintf("%d days", p.DefaultBestBeforeDays) }</dd>
+				}
+				if fv(fd.Fields, "active") {
+					<dt class="col-sm-4">{ fn(fd.Fields, "active") }</dt>
+					<dd class="col-sm-8">
+						if isChecked(p.Active) {
+							<span class="badge text-bg-success">Yes</span>
+						} else {
+							<span class="badge text-bg-secondary">No</span>
+						}
+					</dd>
+				}
+			</dl>
+		</div>
+	</div>
+}

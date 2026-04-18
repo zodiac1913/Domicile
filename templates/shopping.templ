@@ -1,0 +1,223 @@
+package templates
+
+import (
+	"Domicile/internal/models"
+	"Domicile/templates/partials"
+	"strconv"
+)
+
+templ storeSelector(stores []models.ShoppingLocation, activeID int, target string) {
+	<div class="d-flex align-items-center gap-2">
+		<i class="bi bi-shop text-body-secondary"></i>
+		<select class="form-select form-select-sm" style="max-width: 200px;"
+			aria-label="Select store"
+			onchange={ storeSelectChange(target) }>
+			<option value="0" if activeID == 0 { selected }>All Stores</option>
+			for _, s := range stores {
+				<option value={ s.IDStr() } if activeID == s.ID { selected }>{ s.Name }</option>
+			}
+		</select>
+	</div>
+}
+
+func storeSelectChange(target string) templ.ComponentScript {
+	return templ.ComponentScript{
+		Call: `(function(el){
+			var id = el.value;
+			var url = '` + target + `?store_id=' + id;
+			htmx.ajax('GET', url, {target:'#main-content', swap:'innerHTML', pushURL: url});
+		})(this)`,
+	}
+}
+
+templ ShoppingContent(items []models.ShoppingListItem, stores []models.ShoppingLocation, storeID int) {
+	<div id="shopping-area">
+		<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+			<div role="heading" aria-level="2" class="h2 mb-0"><i class="bi bi-cart3 me-2"></i>Shopping List</div>
+			<div class="d-flex gap-2 align-items-center flex-wrap">
+				@storeSelector(stores, storeID, "/shopping")
+				<div class="input-group" style="max-width: 200px;">
+					<span class="input-group-text"><i class="bi bi-search"></i></span>
+					<input type="text" class="form-control" placeholder="Search..." autocomplete="off"
+						aria-label="Search" oninput="filterTable(this.value, 'shopping-table-body')"/>
+				</div>
+			</div>
+		</div>
+		<!-- Action bar -->
+		<div class="d-flex gap-2 mb-3 flex-wrap">
+			<button class="btn btn-sm btn-outline-info"
+				hx-post="/shopping/add-missing"
+				hx-target="#main-content" hx-swap="innerHTML"
+				data-bs-toggle="tooltip" title="Add products whose current stock is below their minimum level">
+				<i class="bi bi-arrow-down-circle me-1"></i>Add Below-Min
+			</button>
+			<button class="btn btn-sm btn-outline-success"
+				hx-post="/shopping/add-to-stock"
+				hx-target="#main-content" hx-swap="innerHTML"
+				hx-confirm="Add all checked-off items to stock?"
+				data-bs-toggle="tooltip" title="Push all ticked items into your stock inventory">
+				<i class="bi bi-box-arrow-in-down me-1"></i>Add to Stock
+			</button>
+			<button class="btn btn-sm btn-outline-warning"
+				hx-post="/shopping/clear-done"
+				hx-target="#main-content" hx-swap="innerHTML"
+				hx-confirm="Remove all ticked items from the list?"
+				data-bs-toggle="tooltip" title="Remove only the ticked/done items from the list">
+				<i class="bi bi-check2-square me-1"></i>Clear Done
+			</button>
+			<button class="btn btn-sm btn-outline-danger"
+				hx-post="/shopping/clear-list"
+				hx-target="#main-content" hx-swap="innerHTML"
+				hx-confirm="Clear the entire shopping list?"
+				data-bs-toggle="tooltip" title="Wipe the entire shopping list regardless of done status">
+				<i class="bi bi-trash me-1"></i>Clear List
+			</button>
+			<a class="btn btn-sm btn-outline-success"
+				hx-get={ "/shopping/shop?store_id=" + strconv.Itoa(storeID) }
+				hx-target="#main-content" hx-swap="innerHTML"
+				hx-push-url={ "/shopping/shop?store_id=" + strconv.Itoa(storeID) }>
+				<i class="bi bi-phone me-1"></i>Shop Mode
+			</a>
+			<a class="btn btn-sm btn-outline-secondary"
+				href={ templ.SafeURL("/shopping/print?store_id=" + strconv.Itoa(storeID)) } target="_blank">
+				<i class="bi bi-printer me-1"></i>Print
+			</a>
+			<div class="form-check form-switch ms-auto d-flex align-items-center">
+				<input class="form-check-input" type="checkbox" role="switch" id="wake-lock-toggle"
+					onchange="toggleWakeLock(this.checked)"/>
+				<label class="form-check-label ms-2" for="wake-lock-toggle">
+					<i class="bi bi-phone me-1"></i>Keep Screen On
+				</label>
+			</div>
+		</div>
+		@partials.ShoppingTable(items)
+		<button class="btn btn-primary btn-lg rounded-circle shadow position-fixed"
+			style="bottom: 2rem; right: 2rem; width: 56px; height: 56px; z-index: 1050;"
+			hx-get="/shopping/new"
+			hx-target="#shopping-area" hx-swap="innerHTML"
+			title="Add Item" aria-label="Add shopping item">
+			<i class="bi bi-plus-lg"></i>
+		</button>
+	</div>
+}
+
+templ ShoppingPage(items []models.ShoppingListItem, stores []models.ShoppingLocation, storeID int) {
+	@Layout("Shopping List") {
+		@ShoppingContent(items, stores, storeID)
+	}
+}
+
+templ ShopModeContent(groups []models.ShoppingGroup, stores []models.ShoppingLocation, storeID int) {
+	<div id="shop-mode-area">
+		<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+			<div role="heading" aria-level="2" class="h2 mb-0"><i class="bi bi-cart-check me-2"></i>Shop Mode</div>
+			<div class="d-flex gap-2 align-items-center flex-wrap">
+				@storeSelector(stores, storeID, "/shopping/shop")
+				<a class="btn btn-sm btn-outline-secondary"
+					hx-get="/shopping" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/shopping">
+					<i class="bi bi-arrow-left me-1"></i>Back
+				</a>
+			</div>
+		</div>
+		<div class="d-flex gap-2 mb-3 flex-wrap">
+			<button class="btn btn-sm btn-outline-warning"
+				hx-post="/shopping/clear-done"
+				hx-target="#main-content" hx-swap="innerHTML"
+				hx-confirm="Remove ticked items?"
+				data-bs-toggle="tooltip" title="Remove only ticked items from the list">
+				<i class="bi bi-check2-square me-1"></i>Clear Done
+			</button>
+			<div class="form-check form-switch ms-auto d-flex align-items-center">
+				<input class="form-check-input" type="checkbox" role="switch" id="wake-lock-toggle-shop"
+					onchange="toggleWakeLock(this.checked)"/>
+				<label class="form-check-label ms-2" for="wake-lock-toggle-shop">
+					<i class="bi bi-phone me-1"></i>Screen On
+				</label>
+			</div>
+			<button class="btn btn-sm btn-outline-light ms-2" onclick="goFullscreen()" title="Fullscreen">
+				<i class="bi bi-arrows-fullscreen me-1"></i>Focus
+			</button>
+		</div>
+		for _, g := range groups {
+			<div class="mb-3">
+				<div role="heading" aria-level="6" class="text-body-secondary border-bottom pb-1 mb-2">
+					<i class="bi bi-geo-alt me-1"></i>{ g.GroupName }
+				</div>
+				<div class="list-group">
+					for _, item := range g.Items {
+						@partials.ShopModeItem(item)
+					}
+				</div>
+			</div>
+		}
+		if len(groups) == 0 {
+			<p class="text-center text-body-secondary py-5">Shopping list is empty.</p>
+		}
+	</div>
+}
+
+templ ShopModePage(groups []models.ShoppingGroup, stores []models.ShoppingLocation, storeID int) {
+	@Layout("Shop Mode") {
+		@ShopModeContent(groups, stores, storeID)
+	}
+}
+
+templ ShoppingPrintPage(groups []models.ShoppingGroup, storeName string) {
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1"/>
+		<title>Shopping List - Domicile</title>
+		<style>
+			body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0.75rem 1rem; color: #000; font-size: 0.9rem; }
+			h1 { font-size: 1.2rem; margin-bottom: 0.15rem; }
+			h2 { font-size: 0.95rem; color: #555; border-bottom: 1px solid #ccc; padding-bottom: 0.2rem; margin-top: 1rem; margin-bottom: 0.35rem; }
+			.item { display: flex; align-items: baseline; padding: 0.2rem 0; gap: 0.4rem; }
+			.checkbox { width: 14px; height: 14px; border: 1.5px solid #333; border-radius: 2px; flex-shrink: 0; margin-top: 2px; }
+			.name { flex-grow: 1; }
+			.qty { font-weight: 600; white-space: nowrap; }
+			.home-loc { color: #888; font-size: 0.78em; white-space: nowrap; }
+			.note { color: #888; font-style: italic; font-size: 0.85em; }
+			.done { text-decoration: line-through; color: #aaa; }
+			.timestamp { color: #999; font-size: 0.8em; margin-bottom: 0.75rem; }
+			@media print { body { margin: 0.5rem 0.75rem; } }
+		</style>
+	</head>
+	<body>
+		<div role="heading" aria-level="1" class="h1">
+			🛒 Shopping List
+			if storeName != "" {
+				— { storeName }
+			}
+		</div>
+		<div class="timestamp" id="print-time"></div>
+		for _, g := range groups {
+			<div role="heading" aria-level="2" class="h2">{ g.GroupName }</div>
+			for _, item := range g.Items {
+				<div class={ "item", templ.KV("done", item.IsDone()) }>
+					<div class="checkbox"></div>
+					<span class="qty">×{ item.AmountStr() }</span>
+					<span class="name">
+						{ item.DisplayName() }
+						if item.Note != "" && item.ProductName != "" {
+							<span class="note"> — { item.Note }</span>
+						}
+						if item.HomeLoc != "" {
+							<span class="home-loc">🏠 { item.HomeLoc }</span>
+						}
+
+					</span>
+				</div>
+			}
+		}
+		if len(groups) == 0 {
+			<p>Shopping list is empty.</p>
+		}
+		<script>
+			document.getElementById('print-time').textContent = new Date().toLocaleString();
+			window.print();
+		</script>
+	</body>
+	</html>
+}

@@ -1,0 +1,146 @@
+package partials
+
+import "Domicile/internal/models"
+
+templ AdminUserList(users []models.User) {
+	<div class="row g-3">
+		for _, u := range users {
+			<div class="col-md-4 col-lg-3" id={ "user-" + u.IDStr() }>
+				<div class="card text-center">
+					<div class="card-body">
+						if u.PictureFileName != "" {
+							<img src={ "/images/users/" + u.PictureFileName }
+								class="rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;"
+								alt={ u.FullName() }/>
+						} else {
+							<div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center mb-2"
+								style="width: 80px; height: 80px;">
+								<i class="bi bi-person-fill fs-1 text-white"></i>
+							</div>
+						}
+						<div class="fw-semibold">{ u.FullName() }</div>
+						<small class="text-body-secondary">{ "@" + u.Username }</small>
+						if u.IsAdminBool() {
+							<div><span class="badge text-bg-warning mt-1"><i class="bi bi-shield-lock me-1"></i>Admin</span></div>
+						}
+						<div class="mt-2">
+							<button class="btn btn-sm btn-outline-warning me-1"
+								hx-get={ "/admin/users/" + u.IDStr() + "/edit" }
+								hx-target="#admin-area" hx-swap="innerHTML"
+								title="Edit" aria-label="Edit user">
+								<i class="bi bi-pencil"></i>
+							</button>
+							<button class="btn btn-sm btn-outline-danger"
+								hx-delete={ "/admin/users/" + u.IDStr() }
+								hx-target={ "#user-" + u.IDStr() }
+								hx-swap="outerHTML swap:200ms"
+								hx-confirm={ "Delete user " + u.Username + "?" }
+								title="Delete" aria-label="Delete user">
+								<i class="bi bi-trash"></i>
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		}
+	</div>
+}
+
+templ AdminUserForm(user *models.User) {
+	<div class="mb-3">
+		<button class="btn btn-sm btn-outline-secondary"
+			hx-get="/admin" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/admin">
+			<i class="bi bi-arrow-left me-1"></i>Back to Admin
+		</button>
+	</div>
+	if user != nil {
+		<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-pencil me-2"></i>Edit User</div>
+	} else {
+		<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-person-plus me-2"></i>New User</div>
+	}
+	<div class="card"><div class="card-body">
+		if user != nil {
+			<form hx-post={ "/admin/users/" + user.IDStr() + "/update" }
+				hx-encoding="multipart/form-data"
+				hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/admin">
+				@adminUserFields(user)
+			</form>
+		} else {
+			<form hx-post="/admin/users"
+				hx-encoding="multipart/form-data"
+				hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/admin">
+				@adminUserFields(nil)
+			</form>
+		}
+	</div></div>
+}
+
+templ adminUserFields(user *models.User) {
+	<div class="row g-3">
+		<div class="col-md-4">
+			<label for="username" class="form-label">Username</label>
+			<input type="text" class="form-control" id="username" name="username" required
+				if user != nil { value={ user.Username } }
+			/>
+		</div>
+		<div class="col-md-4">
+			<label for="first_name" class="form-label">First Name</label>
+			<input type="text" class="form-control" id="first_name" name="first_name"
+				if user != nil { value={ user.FirstName } }
+			/>
+		</div>
+		<div class="col-md-4">
+			<label for="last_name" class="form-label">Last Name</label>
+			<input type="text" class="form-control" id="last_name" name="last_name"
+				if user != nil { value={ user.LastName } }
+			/>
+		</div>
+		<div class="col-md-4">
+			<label for="password" class="form-label">
+				if user != nil {
+					Password (leave blank to keep current)
+				} else {
+					Password
+				}
+			</label>
+			<input type="password" class="form-control" id="password" name="password"
+				if user == nil { required minlength="6" }
+			/>
+		</div>
+		<div class="col-md-4">
+			<label for="picture" class="form-label">Picture</label>
+			if user != nil && user.PictureFileName != "" {
+				<div class="mb-2">
+					<img src={ "/images/users/" + user.PictureFileName }
+						class="rounded-circle" style="width: 60px; height: 60px; object-fit: cover;"
+						alt={ user.FullName() }/>
+				</div>
+			}
+			<input type="file" class="form-control" id="picture" name="picture" accept="image/*"/>
+		</div>
+		<div class="col-md-4 d-flex align-items-end">
+			<div class="form-check">
+				<input class="form-check-input" type="checkbox" id="is_admin" name="is_admin" value="1"
+					if user != nil && user.IsAdminBool() { checked }
+				/>
+				<label class="form-check-label" for="is_admin">
+					<i class="bi bi-shield-lock me-1"></i>Administrator
+				</label>
+			</div>
+		</div>
+		<div class="col-12 mt-3">
+			<button type="submit" class="btn btn-success me-2">
+				<i class="bi bi-check-lg me-1"></i>
+				if user != nil {
+					Save Changes
+				} else {
+					Create User
+				}
+			</button>
+			<button type="button" class="btn btn-outline-secondary"
+				hx-get="/admin" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/admin">
+				Cancel
+			</button>
+		</div>
+	</div>
+}

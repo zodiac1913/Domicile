@@ -1,0 +1,37 @@
+package templates
+
+import (
+	"Domicile/internal/models"
+	"Domicile/templates/partials"
+)
+
+templ LocationsContent(locations []models.LocationDetail) {
+	<div id="locations-area">
+		<div class="d-flex justify-content-between align-items-center mb-4">
+			<div role="heading" aria-level="2" class="h2"><i class="bi bi-geo-alt me-2"></i>Locations</div>
+			<div class="d-flex gap-2 align-items-center">
+				<div class="input-group" style="max-width: 250px;">
+					<span class="input-group-text"><i class="bi bi-search"></i></span>
+					<input type="text" class="form-control" id="location-search"
+						placeholder="Search locations..." autocomplete="off" aria-label="Search locations" aria-label="Search locations"
+						oninput="filterTable(this.value, 'location-table-body')"/>
+				</div>
+			</div>
+		</div>
+		@partials.LocationTable(locations)
+		<button class="btn btn-primary btn-lg rounded-circle shadow position-fixed"
+			style="bottom: 2rem; right: 2rem; width: 56px; height: 56px; z-index: 1050;"
+			hx-get="/locations/new"
+			hx-target="#locations-area"
+			hx-swap="innerHTML"
+			title="Add Location" aria-label="Add Location">
+			<i class="bi bi-plus-lg"></i>
+		</button>
+	</div>
+}
+
+templ LocationsPage(locations []models.LocationDetail) {
+	@Layout("Locations") {
+		@LocationsContent(locations)
+	}
+}

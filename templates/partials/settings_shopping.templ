@@ -1,0 +1,54 @@
+package partials
+
+// ShoppingSettings renders the shopping settings panel.
+templ ShoppingSettings(autoStock bool) {
+	<div class="mb-3">
+		<a href="#" class="btn btn-sm btn-outline-secondary"
+			hx-get="/settings"
+			hx-target="#main-content"
+			hx-swap="innerHTML"
+			hx-push-url="/settings">
+			<i class="bi bi-arrow-left me-1"></i>Back to Settings
+		</a>
+	</div>
+	<div role="heading" aria-level="5" class="mb-4"><i class="bi bi-cart3 me-2"></i>Shopping Settings</div>
+	<div class="list-group list-group-striped">
+		<div class="list-group-item d-flex justify-content-between align-items-center cursor-pointer"
+			data-setting="shopping_auto_stock">
+			<div>
+				<div class="fw-semibold">Auto-add to stock</div>
+				<small class="text-body-secondary">When you check off a shopping item, automatically add it to your stock inventory</small>
+			</div>
+			<div class="form-check form-switch mb-0">
+				<input class="form-check-input setting-toggle" type="checkbox" role="switch"
+					data-key="shopping_auto_stock"
+					if autoStock {
+						checked
+					}
+					aria-label="Toggle auto-add to stock"
+				/>
+			</div>
+		</div>
+	</div>
+	<script>
+		document.querySelectorAll('.setting-toggle').forEach(function(cb) {
+			cb.addEventListener('change', function() {
+				var val = cb.checked ? '1' : '0';
+				fetch('/settings/user-setting', {
+					method: 'POST',
+					headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+					body: 'key=' + cb.dataset.key + '&value=' + val
+				});
+			});
+		});
+		// Make row click toggle the switch.
+		document.querySelectorAll('[data-setting]').forEach(function(row) {
+			row.addEventListener('click', function(e) {
+				if (e.target.classList.contains('setting-toggle')) return;
+				var cb = row.querySelector('.setting-toggle');
+				cb.checked = !cb.checked;
+				cb.dispatchEvent(new Event('change'));
+			});
+		});
+	</script>
+}

@@ -1,0 +1,482 @@
+package partials
+
+import (
+	"Domicile/internal/models"
+	"strconv"
+)
+
+// ── Task List Sidebar ─────────────────────────────────────────────────────────
+
+templ TaskListSidebar(lists []models.TaskList, activeID int) {
+	<div id="task-list-sidebar">
+		<div class="d-flex justify-content-between align-items-center mb-2">
+			<span class="fw-semibold small text-body-secondary">MY LISTS</span>
+			<button class="btn btn-sm btn-outline-primary border-0"
+				onclick="showTaskListForm()"
+				title="New list">
+				<i class="bi bi-plus-lg"></i>
+			</button>
+		</div>
+		<!-- New/edit list form (hidden by default) -->
+		<div id="task-list-form" class="card mb-2 d-none">
+			<div class="card-body p-2">
+				<input type="hidden" id="tlf-id"/>
+				<input type="text" class="form-control form-control-sm mb-1" id="tlf-name" placeholder="List name" required/>
+				<input type="text" class="form-control form-control-sm mb-2" id="tlf-desc" placeholder="Description (optional)"/>
+				<div class="d-flex gap-1">
+					<button class="btn btn-sm btn-success flex-grow-1" onclick="saveTaskList()"><i class="bi bi-check-lg"></i></button>
+					<button class="btn btn-sm btn-outline-secondary" onclick="hideTaskListForm()"><i class="bi bi-x"></i></button>
+				</div>
+			</div>
+		</div>
+		for _, l := range lists {
+			<div class={ "d-flex align-items-center rounded px-2 py-1 mb-1", templ.KV("bg-primary text-white", l.ID == activeID), templ.KV("task-list-item", l.ID != activeID) }
+				style="cursor: pointer;"
+				hx-get={ "/tasks?list_id=" + l.IDStr() }
+				hx-target="#main-content" hx-swap="innerHTML" hx-push-url={ "/tasks?list_id=" + l.IDStr() }>
+				<span class="flex-grow-1 small">{ l.Name }</span>
+				<span class={ "badge ms-1", templ.KV("text-bg-light", l.ID == activeID), templ.KV("text-bg-secondary", l.ID != activeID) }>
+					{ strconv.Itoa(l.DoneCount) }/{ strconv.Itoa(l.TaskCount) }
+				</span>
+				<button class={ "btn btn-sm border-0 p-0 ms-1", templ.KV("text-white", l.ID == activeID), templ.KV("text-body-secondary", l.ID != activeID) }
+					onclick={ editTaskListForm(l.ID, l.Name, l.Description) }
+					title="Edit list">
+					<i class="bi bi-pencil" style="font-size:0.7rem;"></i>
+				</button>
+				<button class={ "btn btn-sm border-0 p-0 ms-1", templ.KV("text-white", l.ID == activeID), templ.KV("text-danger", l.ID != activeID) }
+					hx-delete={ "/tasks/lists/" + l.IDStr() }
+					hx-target="#main-content" hx-swap="innerHTML"
+					hx-confirm={ "Delete list '" + l.Name + "' and all its tasks?" }
+					onclick="event.stopPropagation()"
+					title="Delete list">
+					<i class="bi bi-trash" style="font-size:0.7rem;"></i>
+				</button>
+			</div>
+		}
+		if len(lists) == 0 {
+			<p class="text-body-secondary small">No lists yet.</p>
+		}
+	</div>
+	<script>
+		function showTaskListForm() {
+			document.getElementById('tlf-id').value = '';
+			document.getElementById('tlf-name').value = '';
+			document.getElementById('tlf-desc').value = '';
+			document.getElementById('task-list-form').classList.remove('d-none');
+			document.getElementById('tlf-name').focus();
+		}
+		function hideTaskListForm() {
+			document.getElementById('task-list-form').classList.add('d-none');
+		}
+		function saveTaskList() {
+			var id = document.getElementById('tlf-id').value;
+			var name = document.getElementById('tlf-name').value.trim();
+			var desc = document.getElementById('tlf-desc').value;
+			if (!name) return;
+			var url = id ? '/tasks/lists/' + id + '/update' : '/tasks/lists';
+			fetch(url, {
+				method: 'POST',
+				headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+				body: 'name=' + encodeURIComponent(name) + '&description=' + encodeURIComponent(desc)
+			}).then(r => r.text()).then(html => {
+				document.getElementById('main-content').innerHTML = html;
+				hideTaskListForm();
+			});
+		}
+	</script>
+}
+
+func editTaskListForm(id int, name, desc string) templ.ComponentScript {
+	return templ.ComponentScript{
+		Call: `(function(e){e.stopPropagation();` +
+			`document.getElementById('tlf-id').value='` + strconv.Itoa(id) + `';` +
+			`document.getElementById('tlf-name').value=` + "`" + name + "`" + `;` +
+			`document.getElementById('tlf-desc').value=` + "`" + desc + "`" + `;` +
+			`document.getElementById('task-list-form').classList.remove('d-none');` +
+			`document.getElementById('tlf-name').focus();})(event)`,
+	}
+}
+
+// ── Task List Panel ───────────────────────────────────────────────────────────
+
+templ TaskListPanel(tasks []models.Task, listID int, users []models.User) {
+	<div id="task-list-panel">
+		<!-- Action bar -->
+		<div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+			<button class="btn btn-sm btn-outline-warning"
+				hx-post={ "/tasks/lists/" + strconv.Itoa(listID) + "/clear-done" }
+				hx-target="#main-content" hx-swap="innerHTML"
+				hx-confirm="Remove all done tasks from this list?"
+				title="Remove completed tasks">
+				<i class="bi bi-check2-square me-1"></i>Clear Done
+			</button>
+			<button class="btn btn-sm btn-outline-secondary"
+				hx-post={ "/tasks/lists/" + strconv.Itoa(listID) + "/reset" }
+				hx-target="#main-content" hx-swap="innerHTML"
+				hx-confirm="Reset all tasks to not-done?"
+				title="Mark all tasks as not done (reset the list)">
+				<i class="bi bi-arrow-counterclockwise me-1"></i>Reset List
+			</button>
+		</div>
+		<!-- Add task inline form -->
+		<div class="card mb-3">
+			<div class="card-body p-2">
+				<form hx-post="/tasks" hx-target="#main-content" hx-swap="innerHTML"
+					hx-push-url={ "/tasks?list_id=" + strconv.Itoa(listID) }>
+					<input type="hidden" name="task_list_id" value={ strconv.Itoa(listID) }/>
+					<div class="d-flex gap-2 flex-wrap">
+						<input type="text" class="form-control form-control-sm" name="name" placeholder="New task..." required style="min-width: 180px;"/>
+						<input type="date" class="form-control form-control-sm" name="due_date" style="max-width: 150px;"/>
+						<select class="form-select form-select-sm" name="assigned_to_user_id" style="max-width: 150px;">
+							<option value="0">— Assign —</option>
+							for _, u := range users {
+								<option value={ u.IDStr() }>{ u.FullName() }</option>
+							}
+						</select>
+						<button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i></button>
+					</div>
+				</form>
+			</div>
+		</div>
+		<!-- Task rows -->
+		<div id={ "task-rows-" + strconv.Itoa(listID) }>
+			@TaskRows(tasks, listID)
+		</div>
+	</div>
+}
+
+templ TaskRows(tasks []models.Task, listID int) {
+	for _, t := range tasks {
+		@TaskRow(t, listID)
+	}
+	if len(tasks) == 0 {
+		<p class="text-body-secondary small text-center py-3">No tasks yet. Add one above.</p>
+	}
+}
+
+templ TaskRow(t models.Task, listID int) {
+	<div id={ "task-" + t.IDStr() }
+		class={ "card mb-2", templ.KV("opacity-50", t.IsDone()) }>
+		<div class="card-body p-2 d-flex align-items-start gap-2">
+			<button class={ "btn btn-sm border-0 p-0 flex-shrink-0 mt-1", templ.KV("text-success", t.IsDone()), templ.KV("text-body-secondary", !t.IsDone()) }
+				hx-post={ "/tasks/" + t.IDStr() + "/toggle" }
+				hx-target={ "#task-rows-" + strconv.Itoa(listID) }
+				hx-swap="innerHTML"
+				title="Toggle done">
+				if t.IsDone() {
+					<i class="bi bi-check-circle-fill fs-5"></i>
+				} else {
+					<i class="bi bi-circle fs-5"></i>
+				}
+			</button>
+			<div class="flex-grow-1" style="min-width:0;">
+				<div class={ templ.KV("text-decoration-line-through", t.IsDone()) }>{ t.Name }</div>
+				if t.Description != "" {
+					<small class="text-body-secondary">{ t.Description }</small>
+				}
+				<div class="d-flex gap-2 mt-1 flex-wrap">
+					if t.DueDate != "" {
+						<span class="badge text-bg-secondary"><i class="bi bi-calendar me-1"></i>{ t.DueDate[:10] }</span>
+					}
+					if t.AssignedUsername != "" {
+						<span class="badge text-bg-info"><i class="bi bi-person me-1"></i>{ t.AssignedUsername }</span>
+					}
+				</div>
+			</div>
+			<div class="d-flex gap-1 flex-shrink-0">
+				<button class="btn btn-sm btn-outline-warning border-0"
+					hx-get={ "/tasks/" + t.IDStr() + "/edit" }
+					hx-target={ "#task-" + t.IDStr() }
+					hx-swap="outerHTML"
+					title="Edit">
+					<i class="bi bi-pencil"></i>
+				</button>
+				<button class="btn btn-sm btn-outline-danger border-0"
+					hx-delete={ "/tasks/" + t.IDStr() }
+					hx-target="#main-content" hx-swap="innerHTML"
+					hx-push-url={ "/tasks?list_id=" + strconv.Itoa(listID) }
+					hx-confirm="Delete this task?"
+					title="Delete">
+					<i class="bi bi-trash"></i>
+				</button>
+			</div>
+		</div>
+	</div>
+}
+
+templ TaskForm(t *models.Task, listID int, users []models.User) {
+	<div id={ "task-" + t.IDStr() } class="card mb-2 border-primary">
+		<div class="card-body p-2">
+			<form hx-post={ "/tasks/" + t.IDStr() + "/update" }
+				hx-target="#main-content" hx-swap="innerHTML"
+				hx-push-url={ "/tasks?list_id=" + strconv.Itoa(listID) }>
+				<input type="hidden" name="task_list_id" value={ strconv.Itoa(listID) }/>
+				<div class="row g-2">
+					<div class="col-12">
+						<input type="text" class="form-control form-control-sm" name="name" value={ t.Name } required/>
+					</div>
+					<div class="col-12">
+						<input type="text" class="form-control form-control-sm" name="description" value={ t.Description } placeholder="Description"/>
+					</div>
+					<div class="col-6">
+						<input type="date" class="form-control form-control-sm" name="due_date"
+							if t.DueDate != "" { value={ t.DueDate[:10] } }/>
+					</div>
+					<div class="col-6">
+						<select class="form-select form-select-sm" name="assigned_to_user_id">
+							<option value="0">— Assign —</option>
+							for _, u := range users {
+								<option value={ u.IDStr() }
+									if t.AssignedToUserID != nil && *t.AssignedToUserID == u.ID { selected }>
+									{ u.FullName() }
+								</option>
+							}
+						</select>
+					</div>
+					<div class="col-12 d-flex gap-2">
+						<button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-lg me-1"></i>Save</button>
+						<button type="button" class="btn btn-sm btn-outline-secondary"
+							hx-get={ "/tasks?list_id=" + strconv.Itoa(listID) }
+							hx-target="#main-content" hx-swap="innerHTML">Cancel</button>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+}
+
+// ── Chore List Sidebar ────────────────────────────────────────────────────────
+
+templ ChoreListSidebar(lists []models.ChoreList, activeID int) {
+	<div id="chore-list-sidebar">
+		<div class="d-flex justify-content-between align-items-center mb-2">
+			<span class="fw-semibold small text-body-secondary">MY LISTS</span>
+			<button class="btn btn-sm btn-outline-primary border-0"
+				onclick="showChoreListForm()"
+				title="New list">
+				<i class="bi bi-plus-lg"></i>
+			</button>
+		</div>
+		<div id="chore-list-form" class="card mb-2 d-none">
+			<div class="card-body p-2">
+				<input type="hidden" id="clf-id"/>
+				<input type="text" class="form-control form-control-sm mb-1" id="clf-name" placeholder="List name" required/>
+				<input type="text" class="form-control form-control-sm mb-2" id="clf-desc" placeholder="Description (optional)"/>
+				<div class="d-flex gap-1">
+					<button class="btn btn-sm btn-success flex-grow-1" onclick="saveChoreList()"><i class="bi bi-check-lg"></i></button>
+					<button class="btn btn-sm btn-outline-secondary" onclick="hideChoreListForm()"><i class="bi bi-x"></i></button>
+				</div>
+			</div>
+		</div>
+		for _, l := range lists {
+			<div class={ "d-flex align-items-center rounded px-2 py-1 mb-1", templ.KV("bg-primary text-white", l.ID == activeID), templ.KV("task-list-item", l.ID != activeID) }
+				style="cursor: pointer;"
+				hx-get={ "/chores?list_id=" + l.IDStr() }
+				hx-target="#main-content" hx-swap="innerHTML" hx-push-url={ "/chores?list_id=" + l.IDStr() }>
+				<span class="flex-grow-1 small">{ l.Name }</span>
+				<span class={ "badge ms-1", templ.KV("text-bg-light", l.ID == activeID), templ.KV("text-bg-secondary", l.ID != activeID) }>
+					{ strconv.Itoa(l.DoneCount) }/{ strconv.Itoa(l.ChoreCount) }
+				</span>
+				<button class={ "btn btn-sm border-0 p-0 ms-1", templ.KV("text-white", l.ID == activeID), templ.KV("text-body-secondary", l.ID != activeID) }
+					onclick={ editChoreListForm(l.ID, l.Name, l.Description) }
+					title="Edit list">
+					<i class="bi bi-pencil" style="font-size:0.7rem;"></i>
+				</button>
+				<button class={ "btn btn-sm border-0 p-0 ms-1", templ.KV("text-white", l.ID == activeID), templ.KV("text-danger", l.ID != activeID) }
+					hx-delete={ "/chores/lists/" + l.IDStr() }
+					hx-target="#main-content" hx-swap="innerHTML"
+					hx-confirm={ "Delete list '" + l.Name + "' and all its chores?" }
+					onclick="event.stopPropagation()"
+					title="Delete list">
+					<i class="bi bi-trash" style="font-size:0.7rem;"></i>
+				</button>
+			</div>
+		}
+		if len(lists) == 0 {
+			<p class="text-body-secondary small">No lists yet.</p>
+		}
+	</div>
+	<script>
+		function showChoreListForm() {
+			document.getElementById('clf-id').value = '';
+			document.getElementById('clf-name').value = '';
+			document.getElementById('clf-desc').value = '';
+			document.getElementById('chore-list-form').classList.remove('d-none');
+			document.getElementById('clf-name').focus();
+		}
+		function hideChoreListForm() {
+			document.getElementById('chore-list-form').classList.add('d-none');
+		}
+		function saveChoreList() {
+			var id = document.getElementById('clf-id').value;
+			var name = document.getElementById('clf-name').value.trim();
+			var desc = document.getElementById('clf-desc').value;
+			if (!name) return;
+			var url = id ? '/chores/lists/' + id + '/update' : '/chores/lists';
+			fetch(url, {
+				method: 'POST',
+				headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+				body: 'name=' + encodeURIComponent(name) + '&description=' + encodeURIComponent(desc)
+			}).then(r => r.text()).then(html => {
+				document.getElementById('main-content').innerHTML = html;
+				hideChoreListForm();
+			});
+		}
+	</script>
+}
+
+func editChoreListForm(id int, name, desc string) templ.ComponentScript {
+	return templ.ComponentScript{
+		Call: `(function(e){e.stopPropagation();` +
+			`document.getElementById('clf-id').value='` + strconv.Itoa(id) + `';` +
+			`document.getElementById('clf-name').value=` + "`" + name + "`" + `;` +
+			`document.getElementById('clf-desc').value=` + "`" + desc + "`" + `;` +
+			`document.getElementById('chore-list-form').classList.remove('d-none');` +
+			`document.getElementById('clf-name').focus();})(event)`,
+	}
+}
+
+// ── Chore List Panel ──────────────────────────────────────────────────────────
+
+templ ChoreListPanel(chores []models.Chore, listID int, users []models.User) {
+	<div id="chore-list-panel">
+		<div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+			<button class="btn btn-sm btn-outline-warning"
+				hx-post={ "/chores/lists/" + strconv.Itoa(listID) + "/clear-done" }
+				hx-target="#main-content" hx-swap="innerHTML"
+				hx-confirm="Remove all done chores from this list?"
+				title="Remove completed chores">
+				<i class="bi bi-check2-square me-1"></i>Clear Done
+			</button>
+			<button class="btn btn-sm btn-outline-secondary"
+				hx-post={ "/chores/lists/" + strconv.Itoa(listID) + "/reset" }
+				hx-target="#main-content" hx-swap="innerHTML"
+				hx-confirm="Reset all chores to not-done?"
+				title="Mark all chores as not done (reset the list)">
+				<i class="bi bi-arrow-counterclockwise me-1"></i>Reset List
+			</button>
+		</div>
+		<div class="card mb-3">
+			<div class="card-body p-2">
+				<form hx-post="/chores" hx-target="#main-content" hx-swap="innerHTML"
+					hx-push-url={ "/chores?list_id=" + strconv.Itoa(listID) }>
+					<input type="hidden" name="chore_list_id" value={ strconv.Itoa(listID) }/>
+					<div class="d-flex gap-2 flex-wrap">
+						<input type="text" class="form-control form-control-sm" name="name" placeholder="New chore..." required style="min-width: 180px;"/>
+						<input type="date" class="form-control form-control-sm" name="due_date" style="max-width: 150px;"/>
+						<select class="form-select form-select-sm" name="assigned_to_user_id" style="max-width: 150px;">
+							<option value="0">— Assign —</option>
+							for _, u := range users {
+								<option value={ u.IDStr() }>{ u.FullName() }</option>
+							}
+						</select>
+						<button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i></button>
+					</div>
+				</form>
+			</div>
+		</div>
+		<div id={ "chore-rows-" + strconv.Itoa(listID) }>
+			@ChoreRows(chores, listID)
+		</div>
+	</div>
+}
+
+templ ChoreRows(chores []models.Chore, listID int) {
+	for _, c := range chores {
+		@ChoreRow(c, listID)
+	}
+	if len(chores) == 0 {
+		<p class="text-body-secondary small text-center py-3">No chores yet. Add one above.</p>
+	}
+}
+
+templ ChoreRow(c models.Chore, listID int) {
+	<div id={ "chore-" + c.IDStr() }
+		class={ "card mb-2", templ.KV("opacity-50", c.IsDone()) }>
+		<div class="card-body p-2 d-flex align-items-start gap-2">
+			<button class={ "btn btn-sm border-0 p-0 flex-shrink-0 mt-1", templ.KV("text-success", c.IsDone()), templ.KV("text-body-secondary", !c.IsDone()) }
+				hx-post={ "/chores/" + c.IDStr() + "/toggle" }
+				hx-target={ "#chore-rows-" + strconv.Itoa(listID) }
+				hx-swap="innerHTML"
+				title="Toggle done">
+				if c.IsDone() {
+					<i class="bi bi-check-circle-fill fs-5"></i>
+				} else {
+					<i class="bi bi-circle fs-5"></i>
+				}
+			</button>
+			<div class="flex-grow-1" style="min-width:0;">
+				<div class={ templ.KV("text-decoration-line-through", c.IsDone()) }>{ c.Name }</div>
+				if c.Description != "" {
+					<small class="text-body-secondary">{ c.Description }</small>
+				}
+				<div class="d-flex gap-2 mt-1 flex-wrap">
+					if c.DueDate != "" {
+						<span class="badge text-bg-secondary"><i class="bi bi-calendar me-1"></i>{ c.DueDate[:10] }</span>
+					}
+					if c.AssignedUsername != "" {
+						<span class="badge text-bg-info"><i class="bi bi-person me-1"></i>{ c.AssignedUsername }</span>
+					}
+				</div>
+			</div>
+			<div class="d-flex gap-1 flex-shrink-0">
+				<button class="btn btn-sm btn-outline-warning border-0"
+					hx-get={ "/chores/" + c.IDStr() + "/edit" }
+					hx-target={ "#chore-" + c.IDStr() }
+					hx-swap="outerHTML"
+					title="Edit">
+					<i class="bi bi-pencil"></i>
+				</button>
+				<button class="btn btn-sm btn-outline-danger border-0"
+					hx-delete={ "/chores/" + c.IDStr() }
+					hx-target="#main-content" hx-swap="innerHTML"
+					hx-push-url={ "/chores?list_id=" + strconv.Itoa(listID) }
+					hx-confirm="Delete this chore?"
+					title="Delete">
+					<i class="bi bi-trash"></i>
+				</button>
+			</div>
+		</div>
+	</div>
+}
+
+templ ChoreForm(c *models.Chore, listID int, users []models.User) {
+	<div id={ "chore-" + c.IDStr() } class="card mb-2 border-primary">
+		<div class="card-body p-2">
+			<form hx-post={ "/chores/" + c.IDStr() + "/update" }
+				hx-target="#main-content" hx-swap="innerHTML"
+				hx-push-url={ "/chores?list_id=" + strconv.Itoa(listID) }>
+				<input type="hidden" name="chore_list_id" value={ strconv.Itoa(listID) }/>
+				<div class="row g-2">
+					<div class="col-12">
+						<input type="text" class="form-control form-control-sm" name="name" value={ c.Name } required/>
+					</div>
+					<div class="col-12">
+						<input type="text" class="form-control form-control-sm" name="description" value={ c.Description } placeholder="Description"/>
+					</div>
+					<div class="col-6">
+						<input type="date" class="form-control form-control-sm" name="due_date"
+							if c.DueDate != "" { value={ c.DueDate[:10] } }/>
+					</div>
+					<div class="col-6">
+						<select class="form-select form-select-sm" name="assigned_to_user_id">
+							<option value="0">— Assign —</option>
+							for _, u := range users {
+								<option value={ u.IDStr() }
+									if c.AssignedToUserID != nil && *c.AssignedToUserID == u.ID { selected }>
+									{ u.FullName() }
+								</option>
+							}
+						</select>
+					</div>
+					<div class="col-12 d-flex gap-2">
+						<button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-lg me-1"></i>Save</button>
+						<button type="button" class="btn btn-sm btn-outline-secondary"
+							hx-get={ "/chores?list_id=" + strconv.Itoa(listID) }
+							hx-target="#main-content" hx-swap="innerHTML">Cancel</button>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+}

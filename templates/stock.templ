@@ -1,0 +1,44 @@
+package templates
+
+import (
+	"Domicile/internal/models"
+	"Domicile/templates/partials"
+)
+
+templ StockContent(items []models.StockItem) {
+	<div id="stock-area">
+		<div class="d-flex justify-content-between align-items-center mb-4">
+			<div role="heading" aria-level="2" class="h2"><i class="bi bi-archive me-2"></i>Stock Overview</div>
+			<div class="input-group" style="max-width: 250px;">
+				<span class="input-group-text"><i class="bi bi-search"></i></span>
+				<input type="text" class="form-control" placeholder="Search..." autocomplete="off" aria-label="Search stock"
+					oninput="filterTable(this.value, 'stock-table-body')"/>
+			</div>
+		</div>
+		@partials.StockTable(items)
+	</div>
+}
+
+templ StockPage(items []models.StockItem) {
+	@Layout("Stock") {
+		@StockContent(items)
+	}
+}
+
+templ PurchasePage(products []models.Location, locations []models.Location, preselect int) {
+	@Layout("Purchase") {
+		@partials.PurchaseForm(products, locations, preselect)
+	}
+}
+
+templ ConsumePage(products []models.Location, preselect int) {
+	@Layout("Consume") {
+		@partials.ConsumeForm(products, preselect)
+	}
+}
+
+templ TransferPage(products []models.Location, locations []models.Location) {
+	@Layout("Transfer") {
+		@partials.TransferForm(products, locations)
+	}
+}

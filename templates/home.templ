@@ -4,59 +4,63 @@ import "Domicile/internal/models"
 
 // HomeContent is the inner content — used by htmx partial swaps
 templ HomeContent(stats models.DashboardStats) {
-	<h2 class="mb-4"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
+	<div role="heading" aria-level="2" class="mb-4"><i class="bi bi-speedometer2 me-2"></i>Dashboard</div>
 	<div class="row g-4 mb-4">
 		<div class="col-md-3">
-			<div class="card border-0 shadow-sm" style="background-color: #1a3a5c;">
+			<a class="card border-0 shadow-sm text-decoration-none" style="background-color: #1a3a5c; cursor: pointer;"
+				href="/products" hx-get="/products" hx-target="#main-content" hx-push-url="true">
 				<div class="card-body">
 					<div class="d-flex justify-content-between align-items-center">
 						<div>
-							<h6 class="card-subtitle mb-1" style="color: #a8d0f0;">Products</h6>
-							<h2 class="card-title mb-0 text-white">{ stats.ProductCountStr() }</h2>
+							<div role="heading" aria-level="6" class="card-subtitle mb-1 text-lightskyblue">Products</div>
+							<div role="heading" aria-level="2" class="card-title mb-0 text-white">{ stats.ProductCountStr() }</div>
 						</div>
-						<i class="bi bi-box-seam fs-1" style="color: #5a9fd4;"></i>
+						<i class="bi bi-box-seam fs-1 text-cornflowerblue"></i>
 					</div>
 				</div>
-			</div>
+			</a>
 		</div>
 		<div class="col-md-3">
-			<div class="card border-0 shadow-sm" style="background-color: #5c4a1a;">
+			<a class="card border-0 shadow-sm text-decoration-none" style="background-color: #5c4a1a; cursor: pointer;"
+				href="/stock" hx-get="/stock" hx-target="#main-content" hx-push-url="true">
 				<div class="card-body">
 					<div class="d-flex justify-content-between align-items-center">
 						<div>
-							<h6 class="card-subtitle mb-1" style="color: #f0d8a8;">Expiring Soon</h6>
-							<h2 class="card-title mb-0 text-white">{ stats.ExpiringSoonStr() }</h2>
+							<div role="heading" aria-level="6" class="card-subtitle mb-1 text-wheat">Expiring Soon</div>
+							<div role="heading" aria-level="2" class="card-title mb-0 text-white">{ stats.ExpiringSoonStr() }</div>
 						</div>
-						<i class="bi bi-exclamation-triangle fs-1" style="color: #d4a85a;"></i>
+						<i class="bi bi-exclamation-triangle fs-1 text-goldenrod"></i>
 					</div>
 				</div>
-			</div>
+			</a>
 		</div>
 		<div class="col-md-3">
-			<div class="card border-0 shadow-sm" style="background-color: #5c1a1a;">
+			<a class="card border-0 shadow-sm text-decoration-none" style="background-color: #5c1a1a; cursor: pointer;"
+				href="/stock" hx-get="/stock" hx-target="#main-content" hx-push-url="true">
 				<div class="card-body">
 					<div class="d-flex justify-content-between align-items-center">
 						<div>
-							<h6 class="card-subtitle mb-1" style="color: #f0a8a8;">Below Min Stock</h6>
-							<h2 class="card-title mb-0 text-white">{ stats.BelowMinStockStr() }</h2>
+							<div role="heading" aria-level="6" class="card-subtitle mb-1 text-lightsalmon">Below Min Stock</div>
+							<div role="heading" aria-level="2" class="card-title mb-0 text-white">{ stats.BelowMinStockStr() }</div>
 						</div>
-						<i class="bi bi-arrow-down-circle fs-1" style="color: #d45a5a;"></i>
+						<i class="bi bi-arrow-down-circle fs-1 text-indianred"></i>
 					</div>
 				</div>
-			</div>
+			</a>
 		</div>
 		<div class="col-md-3">
-			<div class="card border-0 shadow-sm" style="background-color: #1a4a5c;">
+			<a class="card border-0 shadow-sm text-decoration-none" style="background-color: #1a4a5c; cursor: pointer;"
+				href="/shopping" hx-get="/shopping" hx-target="#main-content" hx-push-url="true">
 				<div class="card-body">
 					<div class="d-flex justify-content-between align-items-center">
 						<div>
-							<h6 class="card-subtitle mb-1" style="color: #a8e0f0;">Shopping Items</h6>
-							<h2 class="card-title mb-0 text-white">{ stats.ShoppingItemsStr() }</h2>
+							<div role="heading" aria-level="6" class="card-subtitle mb-1 text-paleturquoise">Shopping Items</div>
+							<div role="heading" aria-level="2" class="card-title mb-0 text-white">{ stats.ShoppingItemsStr() }</div>
 						</div>
-						<i class="bi bi-cart3 fs-1" style="color: #5abcd4;"></i>
+						<i class="bi bi-cart3 fs-1 text-mediumturquoise"></i>
 					</div>
 				</div>
-			</div>
+			</a>
 		</div>
 	</div>
 	<div class="row g-4">

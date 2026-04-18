@@ -1,0 +1,28 @@
+package templates
+
+import (
+	"Domicile/internal/models"
+	"Domicile/templates/partials"
+)
+
+templ AdminContent(users []models.User) {
+	<div id="admin-area">
+		<div class="d-flex justify-content-between align-items-center mb-4">
+			<div role="heading" aria-level="2" class="h2"><i class="bi bi-shield-lock me-2"></i>Admin</div>
+		</div>
+		<div role="heading" aria-level="4" class="mb-3">Users</div>
+		@partials.AdminUserList(users)
+		<button class="btn btn-primary btn-lg rounded-circle shadow position-fixed"
+			style="bottom: 2rem; right: 2rem; width: 56px; height: 56px; z-index: 1050;"
+			hx-get="/admin/users/new" hx-target="#admin-area" hx-swap="innerHTML"
+			title="Add User" aria-label="Add User">
+			<i class="bi bi-person-plus"></i>
+		</button>
+	</div>
+}
+
+templ AdminPage(users []models.User) {
+	@Layout("Admin") {
+		@AdminContent(users)
+	}
+}

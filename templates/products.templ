@@ -5,58 +5,36 @@ import (
 	"Domicile/templates/partials"
 )
 
-// ProductsContent is the inner content — used by htmx partial swaps
-templ ProductsContent(products []models.Product, locations []string) {
-	<div class="d-flex justify-content-between align-items-center mb-4">
-		<h2><i class="bi bi-box-seam me-2"></i>Products</h2>
-		<button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#add-product-form"
-			aria-expanded="false" aria-controls="add-product-form">
-			<i class="bi bi-plus-lg me-1"></i>Add Product
+// ProductsContent is the inner content — used by htmx partial swaps.
+templ ProductsContent(products []models.Product) {
+	<div id="products-area">
+		<div class="d-flex justify-content-between align-items-center mb-4">
+			<div role="heading" aria-level="2" class="h2"><i class="bi bi-box-seam me-2"></i>Products</div>
+			<div class="d-flex gap-2 align-items-center">
+				<div class="input-group" style="max-width: 250px;">
+					<span class="input-group-text"><i class="bi bi-search"></i></span>
+					<input type="text" class="form-control" id="product-search"
+						placeholder="Search products..." autocomplete="off" aria-label="Search products" aria-label="Search products"
+						oninput="filterTable(this.value, 'product-table-body')"/>
+				</div>
+			</div>
+		</div>
+		@partials.ProductTable(products)
+		<!-- Sticky Add button -->
+		<button class="btn btn-primary btn-lg rounded-circle shadow position-fixed"
+			style="bottom: 2rem; right: 2rem; width: 56px; height: 56px; z-index: 1050;"
+			hx-get="/products/new"
+			hx-target="#products-area"
+			hx-swap="innerHTML"
+			title="Add Product" aria-label="Add Product">
+			<i class="bi bi-plus-lg"></i>
 		</button>
 	</div>
-	<div class="collapse mb-4" id="add-product-form">
-		<div class="card card-body">
-			<form hx-post="/products" hx-target="#product-table-body" hx-swap="beforeend" hx-on::after-request="this.reset()">
-				<div class="row g-3">
-					<div class="col-md-3">
-						<label for="name" class="form-label">Name</label>
-						<input type="text" class="form-control" id="name" name="name" required/>
-					</div>
-					<div class="col-md-2">
-						<label for="location" class="form-label">Location</label>
-						<select class="form-select" id="location" name="location">
-							for _, loc := range locations {
-								<option value={ loc }>{ loc }</option>
-							}
-						</select>
-					</div>
-					<div class="col-md-2">
-						<label for="quantity" class="form-label">Quantity</label>
-						<input type="number" class="form-control" id="quantity" name="quantity" min="0" value="1"/>
-					</div>
-					<div class="col-md-2">
-						<label for="min_stock" class="form-label">Min Stock</label>
-						<input type="number" class="form-control" id="min_stock" name="min_stock" min="0" value="0"/>
-					</div>
-					<div class="col-md-2">
-						<label for="expires" class="form-label">Expires</label>
-						<input type="date" class="form-control" id="expires" name="expires"/>
-					</div>
-					<div class="col-md-1 d-flex align-items-end">
-						<button type="submit" class="btn btn-success w-100">
-							<i class="bi bi-check-lg"></i>
-						</button>
-					</div>
-				</div>
-			</form>
-		</div>
-	</div>
-	@partials.ProductTable(products)
 }
 
-// ProductsPage is the full page — used for direct browser navigation
-templ ProductsPage(products []models.Product, locations []string) {
+// ProductsPage is the full page — used for direct browser navigation.
+templ ProductsPage(products []models.Product) {
 	@Layout("Products") {
-		@ProductsContent(products, locations)
+		@ProductsContent(products)
 	}
 }

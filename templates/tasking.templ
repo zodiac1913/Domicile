@@ -1,0 +1,62 @@
+package templates
+
+import (
+	"Domicile/internal/models"
+	"Domicile/templates/partials"
+)
+
+templ TasksContent(lists []models.TaskList, tasks []models.Task, activeListID int, users []models.User) {
+	<div id="tasks-area">
+		<div class="d-flex justify-content-between align-items-center mb-3">
+			<div role="heading" aria-level="2" class="h2 mb-0"><i class="bi bi-list-task me-2"></i>Tasks</div>
+		</div>
+		<div class="row g-3">
+			<!-- List sidebar -->
+			<div class="col-md-3">
+				@partials.TaskListSidebar(lists, activeListID)
+			</div>
+			<!-- Task items -->
+			<div class="col-md-9">
+				if activeListID > 0 {
+					@partials.TaskListPanel(tasks, activeListID, users)
+				} else {
+					<p class="text-body-secondary">Create a task list to get started.</p>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+templ TasksPage(lists []models.TaskList, tasks []models.Task, activeListID int, users []models.User) {
+	@Layout("Tasks") {
+		@TasksContent(lists, tasks, activeListID, users)
+	}
+}
+
+templ ChoresContent(lists []models.ChoreList, chores []models.Chore, activeListID int, users []models.User) {
+	<div id="chores-area">
+		<div class="d-flex justify-content-between align-items-center mb-3">
+			<div role="heading" aria-level="2" class="h2 mb-0"><i class="bi bi-check2-square me-2"></i>Chores</div>
+		</div>
+		<div class="row g-3">
+			<!-- List sidebar -->
+			<div class="col-md-3">
+				@partials.ChoreListSidebar(lists, activeListID)
+			</div>
+			<!-- Chore items -->
+			<div class="col-md-9">
+				if activeListID > 0 {
+					@partials.ChoreListPanel(chores, activeListID, users)
+				} else {
+					<p class="text-body-secondary">Create a chore list to get started.</p>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+templ ChoresPage(lists []models.ChoreList, chores []models.Chore, activeListID int, users []models.User) {
+	@Layout("Chores") {
+		@ChoresContent(lists, chores, activeListID, users)
+	}
+}

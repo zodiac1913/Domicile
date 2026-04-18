@@ -1,0 +1,368 @@
+package partials
+
+import "Domicile/internal/models"
+
+// ==================== Product Groups ====================
+
+templ ProductGroupTable(items []models.ProductGroup) {
+	<div class="table-responsive">
+		<table class="table table-hover align-middle" role="table">
+			<thead><tr><th>Name</th><th>Description</th><th>Actions</th></tr></thead>
+			<tbody id="pg-table-body">
+				for _, g := range items {
+					@ProductGroupRow(g)
+				}
+			</tbody>
+		</table>
+	</div>
+	if len(items) == 0 {
+		<p class="text-center text-body-secondary py-3">No product groups yet.</p>
+	}
+}
+
+templ ProductGroupRow(g models.ProductGroup) {
+	<tr id={ "pg-" + g.IDStr() }>
+		<td>{ g.Name }</td>
+		<td>{ g.Description }</td>
+		<td>
+			<button class="btn btn-sm btn-outline-warning me-1"
+				hx-get={ "/product-groups/" + g.IDStr() + "/edit" }
+				hx-target="#pg-area" hx-swap="innerHTML" title="Edit">
+				<i class="bi bi-pencil"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-danger"
+				hx-delete={ "/product-groups/" + g.IDStr() }
+				hx-target={ "#pg-" + g.IDStr() } hx-swap="outerHTML swap:200ms"
+				hx-confirm="Delete this product group?" title="Delete">
+				<i class="bi bi-trash"></i>
+			</button>
+		</td>
+	</tr>
+}
+
+templ ProductGroupForm(item *models.ProductGroup) {
+	<div class="mb-3">
+		<button class="btn btn-sm btn-outline-secondary"
+			hx-get="/product-groups" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/product-groups">
+			<i class="bi bi-arrow-left me-1"></i>Back
+		</button>
+	</div>
+	if item != nil {
+		<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-pencil me-2"></i>Edit Product Group</div>
+	} else {
+		<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-plus-lg me-2"></i>New Product Group</div>
+	}
+	<div class="card"><div class="card-body">
+		if item != nil {
+			<form hx-put={ "/product-groups/" + item.IDStr() }
+				hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/product-groups">
+				@pgFields(item)
+			</form>
+		} else {
+			<form hx-post="/product-groups"
+				hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/product-groups">
+				@pgFields(nil)
+			</form>
+		}
+	</div></div>
+}
+
+templ pgFields(item *models.ProductGroup) {
+	<div class="row g-3">
+		<div class="col-md-4">
+			<label for="name" class="form-label">Name</label>
+			<input type="text" class="form-control" id="name" name="name" required
+				if item != nil { value={ item.Name } }
+			/>
+		</div>
+		<div class="col-md-8">
+			<label for="description" class="form-label">Description</label>
+			<input type="text" class="form-control" id="description" name="description"
+				if item != nil { value={ item.Description } }
+			/>
+		</div>
+		<div class="col-12 mt-3">
+			<button type="submit" class="btn btn-success me-2">
+				<i class="bi bi-check-lg me-1"></i>
+				if item != nil {
+					Save Changes
+				} else {
+					Create
+				}
+			</button>
+			<button type="button" class="btn btn-outline-secondary"
+				hx-get="/product-groups" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/product-groups">
+				Cancel
+			</button>
+		</div>
+	</div>
+}
+
+// ==================== Quantity Units ====================
+
+templ QuantityUnitTable(items []models.QuantityUnit) {
+	<div class="table-responsive">
+		<table class="table table-hover align-middle" role="table">
+			<thead><tr><th>Name</th><th>Plural</th><th>Description</th><th>Actions</th></tr></thead>
+			<tbody id="qu-table-body">
+				for _, q := range items {
+					@QuantityUnitRow(q)
+				}
+			</tbody>
+		</table>
+	</div>
+	if len(items) == 0 {
+		<p class="text-center text-body-secondary py-3">No quantity units yet.</p>
+	}
+}
+
+templ QuantityUnitRow(q models.QuantityUnit) {
+	<tr id={ "qu-" + q.IDStr() }>
+		<td>{ q.Name }</td>
+		<td>{ q.NamePlural }</td>
+		<td>{ q.Description }</td>
+		<td>
+			<button class="btn btn-sm btn-outline-warning me-1"
+				hx-get={ "/quantity-units/" + q.IDStr() + "/edit" }
+				hx-target="#qu-area" hx-swap="innerHTML" title="Edit">
+				<i class="bi bi-pencil"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-danger"
+				hx-delete={ "/quantity-units/" + q.IDStr() }
+				hx-target={ "#qu-" + q.IDStr() } hx-swap="outerHTML swap:200ms"
+				hx-confirm="Delete this quantity unit?" title="Delete">
+				<i class="bi bi-trash"></i>
+			</button>
+		</td>
+	</tr>
+}
+
+templ QuantityUnitForm(item *models.QuantityUnit) {
+	<div class="mb-3">
+		<button class="btn btn-sm btn-outline-secondary"
+			hx-get="/quantity-units" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/quantity-units">
+			<i class="bi bi-arrow-left me-1"></i>Back
+		</button>
+	</div>
+	if item != nil {
+		<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-pencil me-2"></i>Edit Quantity Unit</div>
+	} else {
+		<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-plus-lg me-2"></i>New Quantity Unit</div>
+	}
+	<div class="card"><div class="card-body">
+		if item != nil {
+			<form hx-put={ "/quantity-units/" + item.IDStr() }
+				hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/quantity-units">
+				@quFields(item)
+			</form>
+		} else {
+			<form hx-post="/quantity-units"
+				hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/quantity-units">
+				@quFields(nil)
+			</form>
+		}
+	</div></div>
+}
+
+templ quFields(item *models.QuantityUnit) {
+	<div class="row g-3">
+		<div class="col-md-3">
+			<label for="name" class="form-label">Name (singular)</label>
+			<input type="text" class="form-control" id="name" name="name" required
+				if item != nil { value={ item.Name } }
+			/>
+		</div>
+		<div class="col-md-3">
+			<label for="name_plural" class="form-label">Name (plural)</label>
+			<input type="text" class="form-control" id="name_plural" name="name_plural"
+				if item != nil { value={ item.NamePlural } }
+			/>
+		</div>
+		<div class="col-md-6">
+			<label for="description" class="form-label">Description</label>
+			<input type="text" class="form-control" id="description" name="description"
+				if item != nil { value={ item.Description } }
+			/>
+		</div>
+		<div class="col-12 mt-3">
+			<button type="submit" class="btn btn-success me-2">
+				<i class="bi bi-check-lg me-1"></i>
+				if item != nil {
+					Save Changes
+				} else {
+					Create
+				}
+			</button>
+			<button type="button" class="btn btn-outline-secondary"
+				hx-get="/quantity-units" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/quantity-units">
+				Cancel
+			</button>
+		</div>
+	</div>
+}
+
+// ==================== Stores ====================
+
+templ StoreTable(items []models.ShoppingLocation) {
+	<div class="table-responsive">
+		<table class="table table-hover align-middle" role="table">
+			<thead><tr><th>Name</th><th>Description</th><th>Actions</th></tr></thead>
+			<tbody id="store-table-body">
+				for _, s := range items {
+					@StoreRow(s)
+				}
+			</tbody>
+		</table>
+	</div>
+	if len(items) == 0 {
+		<p class="text-center text-body-secondary py-3">No stores yet.</p>
+	}
+}
+
+templ StoreRow(s models.ShoppingLocation) {
+	<tr id={ "store-" + s.IDStr() }>
+		<td>{ s.Name }</td>
+		<td>{ s.Description }</td>
+		<td>
+			<button class="btn btn-sm btn-outline-warning me-1"
+				hx-get={ "/stores/" + s.IDStr() + "/edit" }
+				hx-target="#store-area" hx-swap="innerHTML" title="Edit">
+				<i class="bi bi-pencil"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-danger"
+				hx-delete={ "/stores/" + s.IDStr() }
+				hx-target={ "#store-" + s.IDStr() } hx-swap="outerHTML swap:200ms"
+				hx-confirm="Delete this store?" title="Delete">
+				<i class="bi bi-trash"></i>
+			</button>
+		</td>
+	</tr>
+}
+
+templ StoreForm(item *models.ShoppingLocation, groups []models.ProductGroup) {
+	<div class="mb-3">
+		<button class="btn btn-sm btn-outline-secondary"
+			hx-get="/stores" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/stores">
+			<i class="bi bi-arrow-left me-1"></i>Back
+		</button>
+	</div>
+	if item != nil {
+		<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-pencil me-2"></i>Edit Store</div>
+	} else {
+		<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-plus-lg me-2"></i>New Store</div>
+	}
+	<div class="card"><div class="card-body">
+		if item != nil {
+			<form hx-put={ "/stores/" + item.IDStr() }
+				hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/stores">
+				@storeFields(item)
+			</form>
+		} else {
+			<form hx-post="/stores"
+				hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/stores">
+				@storeFields(nil)
+			</form>
+		}
+	</div></div>
+	<!-- Product Groups for this store -->
+	if item != nil {
+		<div class="card mt-4" id="store-groups-area">
+			<div class="card-header d-flex justify-content-between align-items-center">
+				<span><i class="bi bi-collection me-2"></i>Product Groups / Aisles</span>
+				<button class="btn btn-sm btn-primary" onclick="showGroupForm()">
+					<i class="bi bi-plus-lg me-1"></i>Add Group
+				</button>
+			</div>
+			<!-- Group Form (hidden by default) -->
+			<div class="card-body d-none" id="group-form-modal">
+				<div role="heading" aria-level="5" class="mb-3" id="gf-title">New Group</div>
+				<input type="hidden" id="gf-id" value=""/>
+				<div class="row g-3">
+					<div class="col-md-4">
+						<label for="gf-name" class="form-label">Name</label>
+						<input type="text" class="form-control" id="gf-name" required/>
+					</div>
+					<div class="col-md-8">
+						<label for="gf-desc" class="form-label">Description</label>
+						<input type="text" class="form-control" id="gf-desc"/>
+					</div>
+					<div class="col-12 mt-2">
+						<button class="btn btn-success btn-sm me-2" id="gf-save-btn" data-store-id={ item.IDStr() } onclick="saveGroupForm()">
+							<i class="bi bi-check-lg me-1"></i>Save
+						</button>
+						<button class="btn btn-outline-secondary btn-sm" onclick="hideGroupForm()">
+							Cancel
+						</button>
+					</div>
+				</div>
+			</div>
+			<!-- Group List -->
+			<div class="card-body p-0" id="group-list">
+				if len(groups) == 0 {
+					<p class="text-body-secondary text-center py-3">No groups yet for this store.</p>
+				} else {
+					<div class="table-responsive">
+						<table class="table table-hover align-middle mb-0" role="table">
+							<thead>
+								<tr><th>Name</th><th>Description</th><th>Actions</th></tr>
+							</thead>
+							<tbody>
+								for _, g := range groups {
+									<tr id={ "grp-" + g.IDStr() }>
+										<td>{ g.Name }</td>
+										<td>{ g.Description }</td>
+										<td>
+											<button class="btn btn-sm btn-outline-warning me-1" title="Edit"
+												data-gid={ g.IDStr() } data-gname={ g.Name } data-gdesc={ g.Description }
+												onclick="editGroupForm(this)">
+												<i class="bi bi-pencil"></i>
+											</button>
+											<button class="btn btn-sm btn-outline-danger" title="Delete"
+												hx-delete={ "/product-groups/" + g.IDStr() }
+												hx-target={ "#grp-" + g.IDStr() }
+												hx-swap="outerHTML swap:200ms"
+												hx-confirm="Delete this group?">
+												<i class="bi bi-trash"></i>
+											</button>
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				}
+			</div>
+		</div>
+	}
+}
+
+templ storeFields(item *models.ShoppingLocation) {
+	<div class="row g-3">
+		<div class="col-md-4">
+			<label for="name" class="form-label">Name</label>
+			<input type="text" class="form-control" id="name" name="name" required
+				if item != nil { value={ item.Name } }
+			/>
+		</div>
+		<div class="col-md-8">
+			<label for="description" class="form-label">Description</label>
+			<input type="text" class="form-control" id="description" name="description"
+				if item != nil { value={ item.Description } }
+			/>
+		</div>
+		<div class="col-12 mt-3">
+			<button type="submit" class="btn btn-success me-2">
+				<i class="bi bi-check-lg me-1"></i>
+				if item != nil {
+					Save Changes
+				} else {
+					Create
+				}
+			</button>
+			<button type="button" class="btn btn-outline-secondary"
+				hx-get="/stores" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/stores">
+				Cancel
+			</button>
+		</div>
+	</div>
+}

@@ -1,0 +1,406 @@
+package partials
+
+import (
+	"Domicile/internal/models"
+	"strconv"
+	"strings"
+	"time"
+)
+
+templ MealPlanWeekGrid(days []models.MealPlanDay, slots []models.MealSlot, week string) {
+	<div id="meal-plan-week" hx-swap-oob="true">
+		<!-- Week navigation -->
+		<div class="d-flex align-items-center justify-content-between mb-3">
+			<button class="btn btn-sm btn-outline-secondary"
+				hx-get={ "/meal-plan/week?week=" + prevWeek(week) }
+				hx-target="#meal-plan-week" hx-swap="outerHTML">
+				<i class="bi bi-chevron-left"></i>
+			</button>
+			<span class="fw-semibold">{ weekRangeLabel(week) }</span>
+			<button class="btn btn-sm btn-outline-secondary"
+				hx-get={ "/meal-plan/week?week=" + nextWeek(week) }
+				hx-target="#meal-plan-week" hx-swap="outerHTML">
+				<i class="bi bi-chevron-right"></i>
+			</button>
+		</div>
+		<!-- Day columns -->
+		<div class="row g-2">
+			for _, day := range days {
+				<div class="col-sm-6 col-md-4 col-lg-3 col-xl-auto flex-xl-fill">
+					@MealPlanDayCard(day, slots, week)
+				</div>
+			}
+		</div>
+	</div>
+}
+
+templ MealPlanDayCard(day models.MealPlanDay, slots []models.MealSlot, week string) {
+	<div class={ "card h-100", templ.KV("border-primary", isToday(day.Date)) }>
+		<div class={ "card-header py-2 d-flex justify-content-between align-items-center", templ.KV("bg-primary text-white", isToday(day.Date)) }>
+			<span class="fw-semibold small">{ day.Label }</span>
+			<button class="btn btn-sm btn-outline-light border-0 p-0 px-1"
+				hx-get={ "/meal-plan/entries/new?day=" + day.Date }
+				hx-target="#meal-plan-modal-body" hx-swap="innerHTML"
+				data-bs-toggle="modal" data-bs-target="#meal-plan-modal"
+				title="Add entry">
+				<i class="bi bi-plus-lg"></i>
+			</button>
+		</div>
+		<div class="card-body p-2">
+			for _, sg := range day.Slots {
+				if len(sg.Entries) > 0 || sg.Slot.ID > 0 {
+					<div class="mb-2">
+						if sg.Slot.ID > 0 {
+							<div class="text-body-secondary small fw-semibold mb-1 d-flex justify-content-between align-items-center">
+								<span>{ sg.Slot.Name }</span>
+								<button class="btn btn-sm btn-outline-secondary border-0 p-0 px-1"
+									hx-get={ "/meal-plan/entries/new?day=" + day.Date + "&slot_id=" + sg.Slot.IDStr() }
+									hx-target="#meal-plan-modal-body" hx-swap="innerHTML"
+									data-bs-toggle="modal" data-bs-target="#meal-plan-modal"
+									title={ "Add to " + sg.Slot.Name }>
+									<i class="bi bi-plus"></i>
+								</button>
+							</div>
+						}
+						for _, e := range sg.Entries {
+							@MealPlanEntryChip(e, week)
+						}
+					</div>
+				}
+			}
+			if len(day.Slots) == 0 {
+				<p class="text-body-secondary small text-center py-2 mb-0">No slots configured</p>
+			}
+		</div>
+	</div>
+}
+
+templ MealPlanEntryChip(e models.MealPlanEntry, week string) {
+	<div class={ "d-flex align-items-start gap-1 mb-1 p-1 rounded", templ.KV("opacity-50", e.IsDone()) }
+		style="background: rgba(255,255,255,0.05);">
+		<button class={ "btn btn-sm border-0 p-0 flex-shrink-0", templ.KV("text-success", e.IsDone()), templ.KV("text-body-secondary", !e.IsDone()) }
+			hx-post={ "/meal-plan/entries/" + e.IDStr() + "/toggle" }
+			hx-target="#meal-plan-week" hx-swap="outerHTML"
+			hx-vals={ `{"week":"` + week + `"}` }
+			title="Toggle done">
+			if e.IsDone() {
+				<i class="bi bi-check-circle-fill"></i>
+			} else {
+				<i class="bi bi-circle"></i>
+			}
+		</button>
+		<div class="flex-grow-1 small" style="min-width: 0;">
+			if e.RecipeName != "" {
+				<div class="fw-semibold text-truncate" title={ e.RecipeName }>{ e.RecipeName }</div>
+			}
+			if e.Note != "" {
+				<div class="text-body-secondary text-truncate" title={ e.Note }>{ e.Note }</div>
+			}
+		</div>
+		<div class="d-flex gap-1 flex-shrink-0">
+			<button class="btn btn-sm border-0 p-0 text-body-secondary"
+				hx-get={ "/meal-plan/entries/" + e.IDStr() + "/edit" }
+				hx-target="#meal-plan-modal-body" hx-swap="innerHTML"
+				data-bs-toggle="modal" data-bs-target="#meal-plan-modal"
+				title="Edit">
+				<i class="bi bi-pencil" style="font-size: 0.7rem;"></i>
+			</button>
+			<button class="btn btn-sm border-0 p-0 text-danger"
+				hx-delete={ "/meal-plan/entries/" + e.IDStr() }
+				hx-target="#meal-plan-week" hx-swap="outerHTML"
+				hx-confirm="Remove this entry?"
+				title="Delete">
+				<i class="bi bi-x" style="font-size: 0.85rem;"></i>
+			</button>
+		</div>
+	</div>
+}
+
+templ MealPlanEntryForm(entry *models.MealPlanEntry, day string, slotID int, slots []models.MealSlot, recipes []models.Recipe) {
+	<div class="p-1">
+		<div class="fw-semibold mb-3">
+			if entry != nil {
+				<i class="bi bi-pencil me-2"></i>Edit Entry
+			} else {
+				<i class="bi bi-plus-lg me-2"></i>Add Entry — { day }
+			}
+		</div>
+		if entry != nil {
+			<form hx-post={ "/meal-plan/entries/" + entry.IDStr() + "/update" }
+				hx-target="#meal-plan-week" hx-swap="outerHTML"
+				hx-on::after-request="bootstrap.Modal.getInstance(document.getElementById('meal-plan-modal'))?.hide()">
+				@mealPlanEntryFields(entry, day, slotID, slots, recipes)
+			</form>
+		} else {
+			<form hx-post="/meal-plan/entries"
+				hx-target="#meal-plan-week" hx-swap="outerHTML"
+				hx-on::after-request="bootstrap.Modal.getInstance(document.getElementById('meal-plan-modal'))?.hide()">
+				@mealPlanEntryFields(nil, day, slotID, slots, recipes)
+			</form>
+		}
+	</div>
+}
+
+templ mealPlanEntryFields(entry *models.MealPlanEntry, day string, slotID int, slots []models.MealSlot, recipes []models.Recipe) {
+	<input type="hidden" name="day" value={ day }/>
+	<div class="mb-3">
+		<label class="form-label">Meal Slot</label>
+		<select class="form-select" name="slot_id">
+			<option value="0">— No slot —</option>
+			for _, s := range slots {
+				<option value={ s.IDStr() }
+					if entry != nil && entry.SectionID != nil && *entry.SectionID == s.ID {
+						selected
+					} else if entry == nil && slotID == s.ID {
+						selected
+					}>
+					{ s.Name }
+				</option>
+			}
+		</select>
+	</div>
+	<div class="mb-3">
+		<label class="form-label">Recipe</label>
+		<select class="form-select" name="recipe_id">
+			<option value="0">— Freehand / no recipe —</option>
+			for _, r := range recipes {
+				<option value={ r.IDStr() }
+					if entry != nil && entry.RecipeID != nil && *entry.RecipeID == r.ID {
+						selected
+					}>
+					{ r.Name }
+				</option>
+			}
+		</select>
+	</div>
+	<div class="mb-3">
+		<label class="form-label">Note / Freehand item</label>
+		<input type="text" class="form-control" name="note" placeholder="e.g. Leftovers, Takeout..."
+			if entry != nil {
+				value={ entry.Note }
+			}/>
+	</div>
+	<div class="d-flex gap-2">
+		<button type="submit" class="btn btn-success">
+			<i class="bi bi-check-lg me-1"></i>Save
+		</button>
+		<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+	</div>
+}
+
+templ MealPlanIngredientsForm(today string) {
+	<div class="p-1">
+		<div class="fw-semibold mb-3"><i class="bi bi-basket me-2"></i>Generate Ingredients List</div>
+		<form hx-post="/meal-plan/ingredients"
+			hx-target="#meal-plan-modal-body" hx-swap="innerHTML">
+			<div class="row g-3 mb-3">
+				<div class="col-6">
+					<label class="form-label">From</label>
+					<input type="date" class="form-control" name="from" value={ today } required/>
+				</div>
+				<div class="col-6">
+					<label class="form-label">To</label>
+					<input type="date" class="form-control" name="to" value={ today } required/>
+				</div>
+			</div>
+			<button type="submit" class="btn btn-primary">
+				<i class="bi bi-search me-1"></i>Get Ingredients
+			</button>
+		</form>
+	</div>
+}
+
+templ MealPlanIngredientsResult(ingredients []models.MealPlanIngredient, msg string) {
+	<div class="p-1">
+		<div class="d-flex justify-content-between align-items-center mb-3">
+			<div class="fw-semibold"><i class="bi bi-basket me-2"></i>Ingredients</div>
+			<button class="btn btn-sm btn-outline-secondary"
+				hx-get="/meal-plan/ingredients"
+				hx-target="#meal-plan-modal-body" hx-swap="innerHTML">
+				<i class="bi bi-arrow-left me-1"></i>Back
+			</button>
+		</div>
+		if msg != "" {
+			<p class="text-body-secondary">{ msg }</p>
+		} else {
+			<form hx-post="/meal-plan/ingredients/add-to-shopping">
+				<div class="mb-3" style="max-height: 420px; overflow-y: auto;">
+					for i, ing := range ingredients {
+						<div class="form-check border-bottom py-2" style="border-color: rgba(255,255,255,0.08) !important;">
+							<input class="form-check-input" type="checkbox" name="items"
+								value={ ingItemValue(ing) }
+								id={ "ing-" + strconv.Itoa(i) } checked/>
+							<label class="form-check-label w-100" for={ "ing-" + strconv.Itoa(i) }>
+								<div class="d-flex justify-content-between align-items-start gap-2">
+									<div>
+										if ing.DisplayQty != "" {
+											<span class="badge text-bg-secondary me-1">{ ing.DisplayQty }</span>
+										}
+										if ing.ProductName != "" {
+											<span class="fw-semibold">{ ing.ProductName }</span>
+											<small class="text-body-secondary ms-1">(from: { ing.Name })</small>
+										} else {
+											<span>{ ing.Name }</span>
+										}
+									</div>
+									<div class="text-end flex-shrink-0">
+										if ing.StoreName != "" {
+											<span class="badge text-bg-info"><i class="bi bi-shop me-1"></i>{ ing.StoreName }</span>
+										}
+										if ing.AisleName != "" {
+											<span class="badge text-bg-secondary ms-1"><i class="bi bi-geo-alt me-1"></i>{ ing.AisleName }</span>
+										}
+										if ing.HomeLoc != "" {
+											<span class="badge text-bg-dark ms-1"><i class="bi bi-house me-1"></i>{ ing.HomeLoc }</span>
+										}
+										<div class="text-body-secondary" style="font-size: 0.7rem;">
+											{ strings.Join(ing.Recipes, ", ") }
+										</div>
+									</div>
+								</div>
+							</label>
+						</div>
+					}
+				</div>
+				<div class="d-flex gap-2">
+					<button type="submit" class="btn btn-success">
+						<i class="bi bi-cart-plus me-1"></i>Add Selected to Shopping List
+					</button>
+					<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+				</div>
+			</form>
+		}
+	</div>
+}
+
+// ingItemValue encodes a MealPlanIngredient as "productID:qty:note" for the form submission.
+func ingItemValue(ing models.MealPlanIngredient) string {
+	pid := "0"
+	if ing.ProductID != nil {
+		pid = strconv.Itoa(*ing.ProductID)
+	}
+	// Use qty=1 as a placeholder; the note carries the full display string.
+	note := ing.Name
+	if ing.DisplayQty != "" {
+		note = ing.DisplayQty + " " + ing.Name
+	}
+	return pid + ":1:" + note
+}
+
+templ MealPlanSlotsPanel(slots []models.MealSlot) {
+	<div id="meal-slots-panel" class="p-1">
+		<div class="fw-semibold mb-3"><i class="bi bi-sliders me-2"></i>Meal Slots</div>
+		<div class="mb-3">
+			for _, s := range slots {
+				<div class="d-flex align-items-center gap-2 mb-2 p-2 rounded" style="background: rgba(255,255,255,0.05);">
+					<span class="badge text-bg-secondary me-1">{ strconv.Itoa(s.SortNumber) }</span>
+					<span class="flex-grow-1">{ s.Name }</span>
+					<button class="btn btn-sm btn-outline-warning border-0"
+						onclick={ showSlotEditForm(s.ID, s.Name, s.SortNumber) }
+						title="Edit">
+						<i class="bi bi-pencil"></i>
+					</button>
+					<button class="btn btn-sm btn-outline-danger border-0"
+						hx-delete={ "/meal-plan/slots/" + s.IDStr() }
+						hx-target="#meal-slots-panel" hx-swap="outerHTML"
+						hx-confirm={ "Delete slot '" + s.Name + "'?" }
+						title="Delete">
+						<i class="bi bi-trash"></i>
+					</button>
+				</div>
+			}
+			if len(slots) == 0 {
+				<p class="text-body-secondary small">No meal slots yet. Add one below.</p>
+			}
+		</div>
+		<!-- Add / Edit form -->
+		<div id="slot-form">
+			<div class="fw-semibold small mb-2" id="slot-form-title">New Slot</div>
+			<input type="hidden" id="slot-edit-id" value=""/>
+			<div class="row g-2 mb-2">
+				<div class="col-8">
+					<input type="text" class="form-control form-control-sm" id="slot-name" placeholder="e.g. Breakfast"/>
+				</div>
+				<div class="col-4">
+					<input type="number" class="form-control form-control-sm" id="slot-sort" placeholder="Order" value="0"/>
+				</div>
+			</div>
+			<div class="d-flex gap-2">
+				<button class="btn btn-sm btn-success" onclick="saveSlot()">
+					<i class="bi bi-check-lg me-1"></i>Save
+				</button>
+				<button class="btn btn-sm btn-outline-secondary" onclick="resetSlotForm()">Cancel</button>
+			</div>
+		</div>
+	</div>
+	<script>
+		function saveSlot() {
+			var id = document.getElementById('slot-edit-id').value;
+			var name = document.getElementById('slot-name').value.trim();
+			var sort = document.getElementById('slot-sort').value;
+			if (!name) return;
+			var method = 'POST';
+			var url = '/meal-plan/slots';
+			if (id) { url = '/meal-plan/slots/' + id + '/update'; }
+			fetch(url, {
+				method: method,
+				headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+				body: 'name=' + encodeURIComponent(name) + '&sort_number=' + encodeURIComponent(sort)
+			}).then(function(r) { return r.text(); }).then(function(html) {
+				document.getElementById('meal-slots-panel').outerHTML = html;
+			});
+		}
+		function resetSlotForm() {
+			document.getElementById('slot-edit-id').value = '';
+			document.getElementById('slot-name').value = '';
+			document.getElementById('slot-sort').value = '0';
+			document.getElementById('slot-form-title').textContent = 'New Slot';
+		}
+	</script>
+}
+
+// showSlotEditForm is a JS call to populate the slot edit form.
+func showSlotEditForm(id int, name string, sort int) templ.ComponentScript {
+	return templ.ComponentScript{
+		Name: "showSlotEditForm",
+		Call: "document.getElementById('slot-edit-id').value='" + strconv.Itoa(id) + "';" +
+			"document.getElementById('slot-name').value='" + name + "';" +
+			"document.getElementById('slot-sort').value='" + strconv.Itoa(sort) + "';" +
+			"document.getElementById('slot-form-title').textContent='Edit Slot';",
+	}
+}
+
+// --- helpers ---
+
+func prevWeek(week string) string {
+	t, err := time.Parse("2006-01-02", week)
+	if err != nil {
+		return week
+	}
+	return t.AddDate(0, 0, -7).Format("2006-01-02")
+}
+
+func nextWeek(week string) string {
+	t, err := time.Parse("2006-01-02", week)
+	if err != nil {
+		return week
+	}
+	return t.AddDate(0, 0, 7).Format("2006-01-02")
+}
+
+func weekRangeLabel(week string) string {
+	t, err := time.Parse("2006-01-02", week)
+	if err != nil {
+		return week
+	}
+	// Normalize to Monday.
+	for t.Weekday() != time.Monday {
+		t = t.AddDate(0, 0, -1)
+	}
+	end := t.AddDate(0, 0, 6)
+	return t.Format("Jan 2") + " – " + end.Format("Jan 2, 2006")
+}
+
+func isToday(dateStr string) bool {
+	return dateStr == time.Now().Format("2006-01-02")
+}

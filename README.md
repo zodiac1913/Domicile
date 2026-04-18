@@ -17,7 +17,7 @@ Domicile aims to be a modern, user-friendly alternative for managing your househ
 - 🛒 Shopping lists
 - 🧹 Chores management
 - 🍳 Recipes & meal planning
-- 🔧 Equipment & instruction manuals
+- 🔧 Inventory & instruction manuals
 - 🔋 Battery tracking
 - 📋 Tasks
 - 👥 Multi-user support (planned)

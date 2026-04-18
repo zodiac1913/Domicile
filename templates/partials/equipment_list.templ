@@ -1,0 +1,234 @@
+package partials
+
+import "Domicile/internal/models"
+
+templ EquipmentRow(e models.EquipmentItem) {
+	<tr id={ "equipment-" + e.IDStr() }>
+		<td style="width: 40px;">
+			if e.PictureFileName != "" {
+				<img src={ "/images/equipment/" + e.PictureFileName }
+					style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px; cursor: pointer;"
+					alt={ e.Name }
+					onclick={ openImgModal(e.Name, "/images/equipment/"+e.PictureFileName) }
+					title="Click to enlarge"/>
+			} else {
+				<i class="bi bi-image text-body-secondary"></i>
+			}
+		</td>
+		<td>{ e.Name }</td>
+		<td>@templ.Raw(e.Description)</td>
+		<td style="width: 40px;">
+			if e.InstructionManualFileName != "" {
+				if isPDF(e.InstructionManualFileName) {
+					<i class="bi bi-file-earmark-pdf text-danger"
+						style="font-size: 1.5rem; cursor: pointer;"
+						onclick={ openPDFModal(e.Name, "/images/equipment_manuals/"+e.InstructionManualFileName) }
+						title="Click to read manual"></i>
+				} else {
+					<img src={ "/images/equipment_manuals/" + e.InstructionManualFileName }
+						style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px; cursor: pointer;"
+						alt="Manual"
+						onclick={ openImgModal(e.Name+" Manual", "/images/equipment_manuals/"+e.InstructionManualFileName) }
+						title="Click to enlarge"/>
+				}
+			}
+		</td>
+		<td>
+			<button class="btn btn-sm btn-outline-warning me-1"
+				hx-get={ "/inventory/" + e.IDStr() + "/edit" }
+				hx-target="#equipment-area" hx-swap="innerHTML"
+				title="Edit">
+				<i class="bi bi-pencil"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-danger"
+				hx-delete={ "/inventory/" + e.IDStr() }
+				hx-target={ "#equipment-" + e.IDStr() }
+				hx-swap="outerHTML swap:200ms"
+				hx-confirm="Delete this equipment?"
+				title="Delete">
+				<i class="bi bi-trash"></i>
+			</button>
+		</td>
+	</tr>
+}
+
+templ EquipmentTable(items []models.EquipmentItem) {
+	<div class="table-responsive">
+		<table class="table table-hover align-middle" role="table">
+			<thead>
+				<tr>
+					<th></th>
+					<th>Name</th>
+					<th>Description</th>
+					<th title="Manual"><i class="bi bi-file-earmark-text"></i></th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody id="equipment-table-body">
+				for _, e := range items {
+					@EquipmentRow(e)
+				}
+			</tbody>
+		</table>
+	</div>
+	if len(items) == 0 {
+		<p class="text-center text-body-secondary py-3">No equipment yet. Add your first one.</p>
+	}
+	<!-- Image modal -->
+	<div class="modal fade" id="equip-img-modal" tabindex="-1" aria-hidden="true">
+		<div class="modal-dialog modal-lg modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header py-2">
+					<span class="modal-title fw-semibold" id="equip-img-title"></span>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body text-center p-2">
+					<img id="equip-img-src" src="" class="img-fluid rounded" alt="Equipment"/>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- PDF modal -->
+	<div class="modal fade" id="equip-pdf-modal" tabindex="-1" aria-hidden="true">
+		<div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="height: 90vh;">
+			<div class="modal-content h-100">
+				<div class="modal-header py-2">
+					<span class="modal-title fw-semibold" id="equip-pdf-title"></span>
+					<div class="ms-auto d-flex gap-2 align-items-center">
+						<a id="equip-pdf-download" href="" target="_blank" class="btn btn-sm btn-outline-info">
+							<i class="bi bi-box-arrow-up-right me-1"></i>Open in tab
+						</a>
+						<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+					</div>
+				</div>
+				<div class="modal-body p-0" style="overflow: hidden;">
+					<iframe id="equip-pdf-frame" src="" style="width:100%; height:100%; border:none; min-height: 70vh;" title="Manual"></iframe>
+				</div>
+			</div>
+		</div>
+	</div>
+	<script>
+		function openEquipImgModal(title, src) {
+			document.getElementById('equip-img-title').textContent = title;
+			document.getElementById('equip-img-src').src = src;
+			new bootstrap.Modal(document.getElementById('equip-img-modal')).show();
+		}
+		function openEquipPDFModal(title, src) {
+			document.getElementById('equip-pdf-title').textContent = title;
+			document.getElementById('equip-pdf-frame').src = src;
+			document.getElementById('equip-pdf-download').href = src;
+			new bootstrap.Modal(document.getElementById('equip-pdf-modal')).show();
+		}
+		document.getElementById('equip-pdf-modal').addEventListener('hidden.bs.modal', function() {
+			document.getElementById('equip-pdf-frame').src = '';
+		});
+	</script>
+}
+
+func openImgModal(title, src string) templ.ComponentScript {
+	return templ.ComponentScript{
+		Call: `openEquipImgModal(` + "`" + title + "`" + `,` + "`" + src + "`" + `)`,
+	}
+}
+
+func openPDFModal(title, src string) templ.ComponentScript {
+	return templ.ComponentScript{
+		Call: `openEquipPDFModal(` + "`" + title + "`" + `,` + "`" + src + "`" + `)`,
+	}
+}
+
+func isPDF(filename string) bool {
+	n := len(filename)
+	return n >= 4 && filename[n-4:] == ".pdf"
+}
+
+templ EquipmentForm(item *models.EquipmentItem) {
+	<div class="mb-3">
+		<button class="btn btn-sm btn-outline-secondary"
+			hx-get="/inventory"
+			hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/inventory">
+			<i class="bi bi-arrow-left me-1"></i>Back to Equipment
+		</button>
+	</div>
+	if item != nil {
+		<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-pencil me-2"></i>Edit Equipment</div>
+	} else {
+		<div role="heading" aria-level="3" class="mb-4"><i class="bi bi-plus-lg me-2"></i>New Equipment</div>
+	}
+	<div class="card">
+		<div class="card-body">
+			if item != nil {
+				<form hx-post={ "/inventory/" + item.IDStr() + "/update" }
+					hx-encoding="multipart/form-data"
+					hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/inventory">
+					@equipmentFormFields(item)
+				</form>
+			} else {
+				<form hx-post="/inventory"
+					hx-encoding="multipart/form-data"
+					hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/inventory">
+					@equipmentFormFields(nil)
+				</form>
+			}
+		</div>
+	</div>
+}
+
+templ equipmentFormFields(item *models.EquipmentItem) {
+	<div class="row g-3">
+		<div class="col-md-4">
+			<label for="name" class="form-label">Name</label>
+			<input type="text" class="form-control" id="name" name="name" required
+				if item != nil {
+					value={ item.Name }
+				}
+			/>
+		</div>
+		<div class="col-md-8">
+			@Wysiwyg("description", "Description", equipDesc(item))
+		</div>
+		<div class="col-md-4">
+			<label for="picture" class="form-label">Picture</label>
+			if item != nil && item.PictureFileName != "" {
+				<div class="mb-2">
+					<img src={ "/images/equipment/" + item.PictureFileName }
+						class="img-thumbnail" style="max-height: 150px;" alt="Equipment picture"/>
+				</div>
+			}
+			<input type="file" class="form-control" id="picture" name="picture" accept="image/*"/>
+		</div>
+		<div class="col-md-4">
+			<label for="manual" class="form-label">Instruction Manual</label>
+			if item != nil && item.InstructionManualFileName != "" {
+				<div class="mb-2">
+					<a href={ templ.SafeURL("/images/equipment_manuals/" + item.InstructionManualFileName) } target="_blank" class="btn btn-sm btn-outline-info">
+						<i class="bi bi-file-earmark-text me-1"></i>View Current
+					</a>
+				</div>
+			}
+			<input type="file" class="form-control" id="manual" name="manual" accept=".pdf,image/*"/>
+			<small class="text-body-secondary">PDF or image</small>
+		</div>
+		<div class="col-12 mt-3">
+			<button type="submit" class="btn btn-success me-2">
+				<i class="bi bi-check-lg me-1"></i>
+				if item != nil {
+					Save Changes
+				} else {
+					Create Equipment
+				}
+			</button>
+			<button type="button" class="btn btn-outline-secondary"
+				hx-get="/inventory" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/inventory">
+				Cancel
+			</button>
+		</div>
+	</div>
+}
+
+func equipDesc(item *models.EquipmentItem) string {
+	if item != nil {
+		return item.Description
+	}
+	return ""
+}

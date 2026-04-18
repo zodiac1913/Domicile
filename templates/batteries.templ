@@ -1,0 +1,84 @@
+package templates
+
+import (
+	"Domicile/internal/models"
+	"Domicile/templates/partials"
+)
+
+templ BatteriesContent(items []models.Battery) {
+	<div id="batteries-area">
+		<div class="d-flex justify-content-between align-items-center mb-3">
+			<div role="heading" aria-level="2" class="h2 mb-0"><i class="bi bi-battery-half me-2"></i>Batteries</div>
+			<div class="input-group" style="max-width: 240px;">
+				<span class="input-group-text"><i class="bi bi-search"></i></span>
+				<input type="text" class="form-control" placeholder="Search..." autocomplete="off"
+					oninput="filterTable(this.value, 'batteries-table-body')"/>
+			</div>
+		</div>
+		@partials.BatteriesTable(items)
+		<button class="btn btn-primary btn-lg rounded-circle shadow position-fixed"
+			style="bottom: 2rem; right: 2rem; width: 56px; height: 56px; z-index: 1050;"
+			hx-get="/batteries/new" hx-target="#batteries-area" hx-swap="innerHTML"
+			title="Add Battery">
+			<i class="bi bi-plus-lg"></i>
+		</button>
+	</div>
+}
+
+templ BatteriesPage(items []models.Battery) {
+	@Layout("Batteries") {
+		@BatteriesContent(items)
+	}
+}
+
+templ BatteriesOverviewContent(items []models.BatteryOverview) {
+	<div id="batteries-overview-area">
+		<div class="d-flex justify-content-between align-items-center mb-3">
+			<div role="heading" aria-level="2" class="h2 mb-0"><i class="bi bi-battery-charging me-2"></i>Battery Overview</div>
+		</div>
+		<!-- Shared modal for history -->
+		<div class="modal fade" id="battery-modal" tabindex="-1" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+				<div class="modal-content">
+					<div class="modal-header py-2">
+						<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+					</div>
+					<div class="modal-body" id="battery-modal-body"></div>
+				</div>
+			</div>
+		</div>
+		<div class="table-responsive">
+			<table class="table table-hover align-middle">
+				<thead>
+					<tr>
+						<th>Battery</th>
+						<th>Used In</th>
+						<th>Interval</th>
+						<th>Last Charged</th>
+						<th>Next Due</th>
+						<th>Status</th>
+						<th>Actions</th>
+					</tr>
+				</thead>
+				<tbody id="batteries-overview-body">
+					for _, b := range items {
+						@partials.BatteryOverviewRow(b)
+					}
+				</tbody>
+			</table>
+		</div>
+		if len(items) == 0 {
+			<p class="text-center text-body-secondary py-5">
+				No batteries yet. Add some on the
+				<a style="cursor:pointer;" class="link-info"
+					hx-get="/batteries" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/batteries">Batteries</a> page.
+			</p>
+		}
+	</div>
+}
+
+templ BatteriesOverviewPage(items []models.BatteryOverview) {
+	@Layout("Battery Overview") {
+		@BatteriesOverviewContent(items)
+	}
+}

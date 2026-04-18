@@ -1,0 +1,48 @@
+package partials
+
+// ImageUpload renders a picture upload/display section for any entity.
+// uploadURL is like "/locations/5/image", currentImage is the filename or empty.
+templ ImageUpload(uploadURL string, entityType string, currentImage string) {
+	<div class="mt-3">
+		<label class="form-label">Picture</label>
+		if currentImage != "" {
+			<div class="mb-2">
+				<img src={ "/images/" + entityType + "/" + currentImage }
+					class="img-thumbnail" style="max-height: 200px;" alt="Current picture"/>
+			</div>
+		}
+		<form hx-post={ uploadURL } hx-encoding="multipart/form-data"
+			hx-target="#main-content" hx-swap="innerHTML">
+			<div class="input-group" style="max-width: 400px;">
+				<input type="file" class="form-control" name="picture" accept="image/*"/>
+				<button type="submit" class="btn btn-outline-primary">
+					<i class="bi bi-upload me-1"></i>Upload
+				</button>
+			</div>
+		</form>
+	</div>
+}
+
+// ManualUpload renders a file upload for instruction manuals (PDF or image).
+templ ManualUpload(uploadURL string, currentFile string) {
+	<div class="mt-3">
+		<label class="form-label">Instruction Manual</label>
+		if currentFile != "" {
+			<div class="mb-2">
+				<a href={ templ.SafeURL("/images/equipment_manuals/" + currentFile) } target="_blank" class="btn btn-sm btn-outline-info">
+					<i class="bi bi-file-earmark-text me-1"></i>View Current Manual
+				</a>
+			</div>
+		}
+		<form hx-post={ uploadURL } hx-encoding="multipart/form-data"
+			hx-target="#main-content" hx-swap="innerHTML">
+			<div class="input-group" style="max-width: 400px;">
+				<input type="file" class="form-control" name="manual" accept=".pdf,image/*"/>
+				<button type="submit" class="btn btn-outline-primary">
+					<i class="bi bi-upload me-1"></i>Upload
+				</button>
+			</div>
+			<small class="text-body-secondary">PDF or image files accepted</small>
+		</form>
+	</div>
+}

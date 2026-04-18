@@ -1,0 +1,11 @@
+package partials
+
+// Wysiwyg renders a rich text editor for a description field.
+// name is the form field name, value is the current HTML content.
+templ Wysiwyg(name string, label string, value string) {
+	<div class="wysiwyg">
+		<label class="form-label">{ label }</label>
+		<textarea class="wysiwyg-value d-none" name={ name }>{ value }</textarea>
+		<div class="wysiwyg-editor" style="min-height: 200px;"></div>
+	</div>
+}

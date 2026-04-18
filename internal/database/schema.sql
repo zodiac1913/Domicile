@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS locations (
     name TEXT NOT NULL UNIQUE,
     description TEXT,
     is_freezer TINYINT NOT NULL DEFAULT 0,
+    picture_file_name TEXT,
     row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
 );
 
@@ -87,6 +88,9 @@ CREATE TABLE IF NOT EXISTS products (
     shopping_location_id INTEGER,
     default_purchase_price_type INTEGER,
     active TINYINT NOT NULL DEFAULT 1,
+    auto_reprint_stock_label TINYINT NOT NULL DEFAULT 0,
+    disable_open TINYINT NOT NULL DEFAULT 0,
+    last_price DECIMAL(15,2),
     row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
 );
 
@@ -209,43 +213,54 @@ CREATE TABLE IF NOT EXISTS shopping_list (
 );
 
 -- ============================================================
--- Recipes & Meal Planning
+-- Recipes
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS recipes (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    slug TEXT,
     description TEXT,
-    picture_file_name TEXT,
-    base_servings INTEGER NOT NULL DEFAULT 1,
-    desired_servings INTEGER NOT NULL DEFAULT 1,
-    not_check_shoppinglist TINYINT NOT NULL DEFAULT 0,
-    product_id INTEGER,
-    type TEXT NOT NULL DEFAULT 'normal',
+    image TEXT,
+    total_time TEXT,
+    prep_time TEXT,
+    cook_time TEXT,
+    recipe_yield TEXT,
+    servings REAL NOT NULL DEFAULT 1,
+    source_url TEXT,
+    rating REAL,
+    date_added DATE DEFAULT (date('now', 'localtime')),
     row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
 );
 
-CREATE TABLE IF NOT EXISTS recipes_pos (
+CREATE TABLE IF NOT EXISTS recipe_ingredients (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     recipe_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
-    amount REAL NOT NULL DEFAULT 0,
-    note TEXT,
-    qu_id INTEGER,
-    only_check_single_unit_in_stock TINYINT NOT NULL DEFAULT 0,
-    not_check_stock_fulfillment TINYINT NOT NULL DEFAULT 0,
-    ingredient_group TEXT,
-    variable_amount TEXT,
-    price_factor REAL NOT NULL DEFAULT 1.0,
+    position INTEGER NOT NULL DEFAULT 0,
+    text TEXT NOT NULL,
+    title TEXT,
     row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
 );
 
-CREATE TABLE IF NOT EXISTS recipes_nestings (
+CREATE TABLE IF NOT EXISTS recipe_instructions (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     recipe_id INTEGER NOT NULL,
-    includes_recipe_id INTEGER NOT NULL,
-    includes_servings INTEGER NOT NULL DEFAULT 1,
+    position INTEGER NOT NULL DEFAULT 0,
+    title TEXT,
+    text TEXT NOT NULL,
     row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
+);
+
+CREATE TABLE IF NOT EXISTS recipe_tags (
+    recipe_id INTEGER NOT NULL,
+    tag TEXT NOT NULL,
+    PRIMARY KEY (recipe_id, tag)
+);
+
+CREATE TABLE IF NOT EXISTS recipe_categories (
+    recipe_id INTEGER NOT NULL,
+    category TEXT NOT NULL,
+    PRIMARY KEY (recipe_id, category)
 );
 
 CREATE TABLE IF NOT EXISTS meal_plan (
@@ -271,29 +286,50 @@ CREATE TABLE IF NOT EXISTS meal_plan_sections (
 );
 
 -- ============================================================
+-- Tasks
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS task_lists (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    user_id INTEGER NOT NULL DEFAULT 1,
+    row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
+);
+
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    task_list_id INTEGER NOT NULL DEFAULT 1,
+    name TEXT NOT NULL,
+    description TEXT,
+    due_date DATETIME,
+    done TINYINT NOT NULL DEFAULT 0,
+    done_timestamp DATETIME,
+    assigned_to_user_id INTEGER,
+    row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
+);
+
+-- ============================================================
 -- Chores
 -- ============================================================
 
+CREATE TABLE IF NOT EXISTS chore_lists (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    user_id INTEGER NOT NULL DEFAULT 1,
+    row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
+);
+
 CREATE TABLE IF NOT EXISTS chores (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
+    chore_list_id INTEGER NOT NULL DEFAULT 1,
+    name TEXT NOT NULL,
     description TEXT,
-    period_type TEXT NOT NULL,
-    period_days INTEGER,
-    period_config TEXT,
-    track_date_only TINYINT NOT NULL DEFAULT 0,
-    rollover TINYINT NOT NULL DEFAULT 0,
-    assignment_type TEXT,
-    assignment_config TEXT,
-    next_execution_assigned_to_user_id INTEGER,
-    consume_product_on_execution TINYINT NOT NULL DEFAULT 0,
-    product_id INTEGER,
-    product_amount REAL,
-    period_interval INTEGER NOT NULL DEFAULT 1,
-    active TINYINT NOT NULL DEFAULT 1,
-    start_date DATE,
-    rescheduled_date DATETIME,
-    rescheduled_next_execution_assigned_to_user_id INTEGER,
+    due_date DATETIME,
+    done TINYINT NOT NULL DEFAULT 0,
+    done_timestamp DATETIME,
+    assigned_to_user_id INTEGER,
     row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
 );
 
@@ -304,29 +340,6 @@ CREATE TABLE IF NOT EXISTS chores_log (
     done_by_user_id INTEGER,
     undone TINYINT NOT NULL DEFAULT 0,
     undone_timestamp DATETIME,
-    row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
-);
-
--- ============================================================
--- Tasks
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS task_categories (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    description TEXT,
-    row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
-);
-
-CREATE TABLE IF NOT EXISTS tasks (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    description TEXT,
-    due_date DATETIME,
-    done TINYINT NOT NULL DEFAULT 0,
-    done_timestamp DATETIME,
-    category_id INTEGER,
-    assigned_to_user_id INTEGER,
     row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
 );
 
@@ -363,6 +376,7 @@ CREATE TABLE IF NOT EXISTS equipment (
     name TEXT NOT NULL UNIQUE,
     description TEXT,
     instruction_manual_file_name TEXT,
+    picture_file_name TEXT,
     row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
 );
 
@@ -376,6 +390,7 @@ CREATE TABLE IF NOT EXISTS users (
     first_name TEXT,
     last_name TEXT,
     password TEXT NOT NULL,
+    is_admin TINYINT NOT NULL DEFAULT 0,
     picture_file_name TEXT,
     row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
 );
@@ -451,6 +466,37 @@ CREATE TABLE IF NOT EXISTS userobjects (
     userentity_id INTEGER NOT NULL,
     row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
 );
+
+-- ============================================================
+-- Field visibility settings
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS field_visibility (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    table_name TEXT NOT NULL,
+    field_name TEXT NOT NULL,
+    hidden TINYINT NOT NULL DEFAULT 0,
+    row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime')),
+    UNIQUE(table_name, field_name)
+);
+
+-- ============================================================
+-- Indexes
+-- ============================================================
+
+CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
+CREATE INDEX IF NOT EXISTS idx_products_active ON products(active);
+CREATE INDEX IF NOT EXISTS idx_products_location ON products(location_id);
+CREATE INDEX IF NOT EXISTS idx_products_group ON products(product_group_id);
+CREATE INDEX IF NOT EXISTS idx_stock_product ON stock(product_id);
+CREATE INDEX IF NOT EXISTS idx_stock_log_product ON stock_log(product_id);
+CREATE INDEX IF NOT EXISTS idx_shopping_list_done ON shopping_list(done);
+CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_recipe ON recipe_ingredients(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_instructions_recipe ON recipe_instructions(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipes_name ON recipes(name);
+CREATE INDEX IF NOT EXISTS idx_meal_plan_day ON meal_plan(day);
+CREATE INDEX IF NOT EXISTS idx_tasks_list ON tasks(task_list_id);
+CREATE INDEX IF NOT EXISTS idx_chores_list ON chores(chore_list_id);
 
 -- ============================================================
 -- Seed data

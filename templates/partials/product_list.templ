@@ -2,10 +2,15 @@ package partials
 
 import "Domicile/internal/models"
 
-// ProductRow renders a single product row — used by htmx for swapping
+// ProductRow renders a single product row.
 templ ProductRow(p models.Product) {
 	<tr id={ "product-" + p.IDStr() }>
-		<td>{ p.Name }</td>
+		<td class="cursor-pointer"
+			hx-get={ "/products/" + p.IDStr() }
+			hx-target="#products-area"
+			hx-swap="innerHTML">
+			{ p.Name }
+		</td>
 		<td>{ p.Location }</td>
 		<td>
 			<span class={ "badge", stockBadgeClass(p) }>
@@ -14,36 +19,50 @@ templ ProductRow(p models.Product) {
 		</td>
 		<td>{ p.ExpiresDisplay() }</td>
 		<td>
+			<button class="btn btn-sm btn-outline-info me-1"
+				hx-post={ "/products/" + p.IDStr() + "/add-to-cart" }
+				hx-target={ "#product-" + p.IDStr() }
+				hx-swap="outerHTML"
+				title="Add to shopping list" aria-label="Add to shopping list">
+				<i class="bi bi-cart-plus"></i>
+			</button>
 			<button class="btn btn-sm btn-outline-success me-1"
 				hx-post={ "/products/" + p.IDStr() + "/consume" }
 				hx-target={ "#product-" + p.IDStr() }
 				hx-swap="outerHTML"
-				title="Consume one">
+				title="Consume one" aria-label="Consume one">
 				<i class="bi bi-dash-circle"></i>
 			</button>
 			<button class="btn btn-sm btn-outline-primary me-1"
 				hx-post={ "/products/" + p.IDStr() + "/add" }
 				hx-target={ "#product-" + p.IDStr() }
 				hx-swap="outerHTML"
-				title="Add one">
+				title="Add one" aria-label="Add one">
 				<i class="bi bi-plus-circle"></i>
+			</button>
+			<button class="btn btn-sm btn-outline-warning me-1"
+				hx-get={ "/products/" + p.IDStr() + "/edit" }
+				hx-target="#products-area"
+				hx-swap="innerHTML"
+				title="Edit" aria-label="Edit product">
+				<i class="bi bi-pencil"></i>
 			</button>
 			<button class="btn btn-sm btn-outline-danger"
 				hx-delete={ "/products/" + p.IDStr() }
 				hx-target={ "#product-" + p.IDStr() }
 				hx-swap="outerHTML swap:200ms"
 				hx-confirm="Delete this product?"
-				title="Delete">
+				title="Delete" aria-label="Delete product">
 				<i class="bi bi-trash"></i>
 			</button>
 		</td>
 	</tr>
 }
 
-// ProductTable renders the full product table
+// ProductTable renders the full product table.
 templ ProductTable(products []models.Product) {
 	<div class="table-responsive">
-		<table class="table table-hover align-middle">
+		<table class="table table-hover align-middle" aria-label="Products list">
 			<thead>
 				<tr>
 					<th>Name</th>
@@ -65,7 +84,7 @@ templ ProductTable(products []models.Product) {
 	}
 }
 
-// ExpiringSoon renders a compact list for the dashboard
+// ExpiringSoon renders a compact list for the dashboard.
 templ ExpiringSoon(products []models.Product) {
 	if len(products) == 0 {
 		<p class="text-body-secondary mb-0">Nothing expiring soon. You're all set.</p>
@@ -81,7 +100,7 @@ templ ExpiringSoon(products []models.Product) {
 	}
 }
 
-// ShoppingPreview renders a compact shopping list for the dashboard
+// ShoppingPreview renders a compact shopping list for the dashboard.
 templ ShoppingPreview(items []models.ShoppingItem) {
 	if len(items) == 0 {
 		<p class="text-body-secondary mb-0">Shopping list is empty.</p>
