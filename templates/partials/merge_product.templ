@@ -1,0 +1,57 @@
+package partials
+
+import (
+	"Domicile/internal/models"
+	"strconv"
+)
+
+templ MergeProductForm(product models.Product, candidates []models.Location) {
+	<div class="mb-3">
+		<button class="btn btn-sm btn-outline-secondary"
+			hx-get="/products" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/products">
+			<i class="bi bi-arrow-left me-1"></i>Back to Products
+		</button>
+	</div>
+	<div role="heading" aria-level="3" class="mb-4">
+		<i class="bi bi-arrow-repeat me-2"></i>Merge into: <strong>{ product.Name }</strong>
+	</div>
+	<div class="card">
+		<div class="card-body">
+			<p class="text-body-secondary mb-3">
+				Select a product to merge INTO <strong>{ product.Name }</strong>. The selected product will be deleted
+				and all its recipe references, shopping list items, and stock will be transferred to <strong>{ product.Name }</strong>.
+			</p>
+			<form hx-post={ "/products/" + product.IDStr() + "/merge" }
+				hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/products"
+				hx-confirm={ "Merge/rename for " + product.Name + "? This cannot be undone." }>
+				<div class="row g-3">
+					<div class="col-md-6">
+						<label for="new_name" class="form-label">Rename to (optional)</label>
+						<input type="text" class="form-control" id="new_name" name="new_name"
+							placeholder="Leave blank to keep current name" value={ product.Name }/>
+						<small class="text-body-secondary">Change the name — useful for allergies or corrections</small>
+					</div>
+					<div class="col-md-6">
+						<label for="merge_id" class="form-label">Absorb another product (optional)</label>
+						<select class="form-select" id="merge_id" name="merge_id">
+							<option value="">— None (just rename) —</option>
+							for _, c := range candidates {
+								<option value={ strconv.Itoa(c.ID) }>{ c.Name }</option>
+							}
+						</select>
+						<small class="text-body-secondary">This product will be deleted and merged in</small>
+					</div>
+					<div class="col-12 mt-3">
+						<button type="submit" class="btn btn-danger me-2">
+							<i class="bi bi-arrow-repeat me-1"></i>Apply
+						</button>
+						<button type="button" class="btn btn-outline-secondary"
+							hx-get="/products" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/products">
+							Cancel
+						</button>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+}

@@ -51,6 +51,12 @@ templ ProductRow(p models.Product) {
 					title="Delete" aria-label="Delete product">
 					<i class="bi bi-trash"></i>
 				</button>
+				<button class="btn btn-outline-secondary btn-sm p-0 px-1"
+					hx-get={ "/products/" + p.IDStr() + "/merge" }
+					hx-target="#products-area" hx-swap="innerHTML"
+					title="Merge" aria-label="Merge product">
+					<i class="bi bi-arrow-repeat"></i>
+				</button>
 				<a class="btn btn-outline-warning btn-sm p-0 px-1"
 					href={ templ.SafeURL("https://www.amazon.com/s?k=" + p.Name) }
 					target="_blank" title="Amazon" aria-label="Search Amazon">
