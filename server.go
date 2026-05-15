@@ -65,6 +65,8 @@ func main() {
 	e.PUT("/products/:id", handlers.UpdateProduct)
 	e.POST("/products/:id/update", handlers.UpdateProduct)
 	e.DELETE("/products/:id", handlers.DeleteProduct)
+	e.GET("/products/:id/merge", handlers.MergeProductForm)
+	e.POST("/products/:id/merge", handlers.MergeProduct)
 	e.POST("/products/:id/consume", handlers.ConsumeProduct)
 	e.POST("/products/:id/add", handlers.AddProduct)
 	e.POST("/products/:id/add-to-cart", handlers.AddToCart)

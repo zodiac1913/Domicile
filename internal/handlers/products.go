@@ -6,7 +6,9 @@ import (
 	"Domicile/templates"
 	"Domicile/templates/partials"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -414,4 +416,97 @@ func optionalFloat(s string) *float64 {
 		return nil
 	}
 	return &v
+}
+
+// MergeProductForm shows the merge UI for a product.
+func MergeProductForm(c echo.Context) error {
+	id, _ := strconv.Atoi(c.Param("id"))
+	var product models.Product
+	err := database.DB.Get(&product, `
+		SELECT p.id, p.name, IFNULL(l.name, '') as location,
+			IFNULL(sc.amount, 0) as quantity, p.min_stock_amount,
+			IFNULL(sc.best_before_date, '') as expires_at
+		FROM products p
+		LEFT JOIN locations l ON p.location_id = l.id
+		LEFT JOIN stock_current sc ON p.id = sc.product_id
+		WHERE p.id = ?`, id)
+	if err != nil {
+		return c.String(http.StatusNotFound, "Product not found")
+	}
+
+	// Get all other products as merge candidates.
+	var candidates []models.Location
+	database.DB.Select(&candidates, "SELECT id, name FROM products WHERE id != ? AND active = 1 ORDER BY name", id)
+
+	return render(c, http.StatusOK, partials.MergeProductForm(product, candidates))
+}
+
+// MergeProduct merges one product into another.
+func MergeProduct(c echo.Context) error {
+	keepID, _ := strconv.Atoi(c.Param("id"))
+	mergeID, _ := strconv.Atoi(c.FormValue("merge_id"))
+	newName := strings.TrimSpace(c.FormValue("new_name"))
+
+	// Get the keep product's current name.
+	var keepName string
+	database.DB.Get(&keepName, "SELECT name FROM products WHERE id = ?", keepID)
+	if keepName == "" {
+		return c.String(http.StatusBadRequest, "Product not found")
+	}
+
+	// If a new name is provided, rename the keep product.
+	if newName != "" && newName != keepName {
+		database.DB.Exec("UPDATE products SET name = ? WHERE id = ?", newName, keepID)
+		// Also replace old name in recipes.
+		replaceInRecipes(keepName, newName)
+		keepName = newName
+	}
+
+	// If a merge target is selected, absorb it.
+	if mergeID > 0 && mergeID != keepID {
+		var mergeName string
+		database.DB.Get(&mergeName, "SELECT name FROM products WHERE id = ?", mergeID)
+		if mergeName != "" {
+			// Replace in recipe ingredients (case-insensitive).
+			replaceInRecipes(mergeName, keepName)
+
+			// Transfer shopping list items.
+			database.DB.Exec("UPDATE shopping_list SET product_id = ? WHERE product_id = ?", keepID, mergeID)
+
+			// Transfer stock.
+			database.DB.Exec("UPDATE stock SET product_id = ? WHERE product_id = ?", keepID, mergeID)
+			database.DB.Exec("UPDATE stock_log SET product_id = ? WHERE product_id = ?", keepID, mergeID)
+
+			// Delete the merged product.
+			var picFile string
+			database.DB.Get(&picFile, "SELECT IFNULL(picture_file_name,'') FROM products WHERE id = ?", mergeID)
+			if picFile != "" {
+				deleteImage("products", picFile)
+			}
+			database.DB.Exec("DELETE FROM products WHERE id = ?", mergeID)
+		}
+	}
+
+	return ProductsPage(c)
+}
+
+// replaceInRecipes does a case-insensitive replacement of oldName with newName in all recipe ingredient text.
+func replaceInRecipes(oldName, newName string) {
+	// SQLite doesn't have case-insensitive REPLACE, so we fetch, replace in Go, and update.
+	type ingRow struct {
+		ID   int    `db:"id"`
+		Text string `db:"text"`
+	}
+	var ingredients []ingRow
+	database.DB.Select(&ingredients, "SELECT id, text FROM recipe_ingredients WHERE LOWER(text) LIKE ?",
+		"%"+strings.ToLower(oldName)+"%")
+
+	for _, ing := range ingredients {
+		// Case-insensitive replace.
+		re := regexp.MustCompile("(?i)" + regexp.QuoteMeta(oldName))
+		updated := re.ReplaceAllString(ing.Text, newName)
+		if updated != ing.Text {
+			database.DB.Exec("UPDATE recipe_ingredients SET text = ? WHERE id = ?", updated, ing.ID)
+		}
+	}
 }
