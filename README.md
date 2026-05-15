@@ -36,7 +36,7 @@ go install github.com/a-h/templ/cmd/templ@latest
 
 ```bash
 # Clone the repo
-git clone https://github.com/Zodiac1913@gmail.com/Domicile.git
+git clone https://github.com/zodiac1913/Domicile.git
 cd Domicile
 
 # Install dependencies

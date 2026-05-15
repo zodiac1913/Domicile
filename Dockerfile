@@ -3,7 +3,7 @@ FROM golang:1.25-alpine AS builder
 RUN apk add --no-cache git
 
 # Install templ
-RUN go install github.com/a-h/templ/cmd/templ@latest
+RUN go install github.com/a-h/templ/cmd/templ@v0.3.1001
 
 WORKDIR /app
 COPY go.mod go.sum ./
