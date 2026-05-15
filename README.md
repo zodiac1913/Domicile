@@ -86,6 +86,39 @@ templ generate --watch
 go run server.go
 ```
 
+## Docker
+
+If you'd like to run Domicile as a Docker container, a Dockerfile is included. For full setup instructions, configuration options, and a ready-to-use `compose.yml`, see the [Docker documentation](https://zodiac1913.github.io/Domicile/installation).
+
+Quick start:
+
+```yaml
+services:
+  domicile:
+    image: ghcr.io/zodiac1913/domicile:latest
+    container_name: domicile
+    restart: unless-stopped
+    ports:
+      - "1323:1323"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DOMICILE_NO_BROWSER=1
+```
+
+```bash
+docker compose up -d
+```
+
+## Inspiration
+
+Domicile wouldn't exist without these great projects:
+
+- [Grocy](https://grocy.info) — The original self-hosted groceries & household management app
+- [Mealie](https://mealie.io) — A beautiful self-hosted recipe manager
+
+Thanks to both teams for paving the way.
+
 ## License
 
 MIT
