@@ -1,6 +1,6 @@
 services:
   domicile:
-    build: /home/badass/Desktop/Dev/Domicile
+    build: .
     container_name: domicile
     restart: unless-stopped
     ports:
