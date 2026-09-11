@@ -48,6 +48,7 @@ func getProductDetailByID(id int) (models.ProductDetail, error) {
 			p.no_own_stock, p.default_consume_location_id, p.move_on_open,
 			p.shopping_location_id, p.default_purchase_price_type,
 			p.active, p.auto_reprint_stock_label, p.disable_open, p.last_price,
+			p.purchase_count,
 			IFNULL(sc.amount, 0) as stock_quantity,
 			IFNULL(sc.best_before_date, '') as stock_best_before
 		FROM products p
@@ -211,6 +212,7 @@ func UpdateProduct(c echo.Context) error {
 	locationID, _ := strconv.Atoi(c.FormValue("location_id"))
 	productGroupID := optionalInt(c.FormValue("product_group_id"))
 	minStock, _ := strconv.Atoi(c.FormValue("min_stock_amount"))
+	purchaseCount, _ := strconv.Atoi(c.FormValue("purchase_count"))
 	description := c.FormValue("description")
 	barcode := c.FormValue("barcode")
 	lastPrice := optionalFloat(c.FormValue("last_price"))
@@ -242,14 +244,14 @@ func UpdateProduct(c echo.Context) error {
 			calories=?, cumulate_min_stock_amount_of_sub_products=?,
 			quick_consume_amount=?, quick_open_amount=?, hide_on_stock_overview=?,
 			should_not_be_frozen=?, treat_opened_as_out_of_stock=?, no_own_stock=?,
-			move_on_open=?, disable_open=?, auto_reprint_stock_label=?
+			move_on_open=?, disable_open=?, auto_reprint_stock_label=?, purchase_count=?
 		WHERE id=?`,
 		name, description, locationID, productGroupID, barcode, lastPrice, minStock,
 		defaultBBDays, defaultBBDaysOpen, defaultBBDaysFreezing, defaultBBDaysThawing,
 		enableTare, tareWeight, notCheckRecipes, calories, cumulateMin,
 		quickConsume, quickOpen, hideOnOverview,
 		shouldNotBeFrozen, treatOpenedOOS, noOwnStock,
-		moveOnOpen, disableOpen, autoReprint, id)
+		moveOnOpen, disableOpen, autoReprint, purchaseCount, id)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "Update failed: "+err.Error())
 	}

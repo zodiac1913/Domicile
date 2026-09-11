@@ -88,6 +88,7 @@ type ProductDetail struct {
 	AutoReprintStockLabel               int      `db:"auto_reprint_stock_label"`
 	DisableOpen                         int      `db:"disable_open"`
 	LastPrice                           *float64 `db:"last_price"`
+	PurchaseCount                       int      `db:"purchase_count"`
 	// Stock info (joined, not in products table)
 	StockQuantity   int    `db:"stock_quantity"`
 	StockBestBefore string `db:"stock_best_before"`
@@ -107,6 +108,10 @@ func (p ProductDetail) LastPriceStr() string {
 		return strconv.FormatFloat(*p.LastPrice, 'f', 2, 64)
 	}
 	return ""
+}
+
+func (p ProductDetail) PurchaseCountStr() string {
+	return strconv.Itoa(p.PurchaseCount)
 }
 
 // Location is a simple lookup for dropdowns.
@@ -399,8 +404,8 @@ type Task struct {
 	AssignedUsername string `db:"assigned_username"`
 }
 
-func (t Task) IDStr() string      { return strconv.Itoa(t.ID) }
-func (t Task) IsDone() bool       { return t.Done == 1 }
+func (t Task) IDStr() string         { return strconv.Itoa(t.ID) }
+func (t Task) IsDone() bool          { return t.Done == 1 }
 func (t Task) TaskListIDStr() string { return strconv.Itoa(t.TaskListID) }
 
 // ChoreList is a named list of chores owned by a user.
@@ -428,8 +433,8 @@ type Chore struct {
 	AssignedUsername string `db:"assigned_username"`
 }
 
-func (c Chore) IDStr() string       { return strconv.Itoa(c.ID) }
-func (c Chore) IsDone() bool        { return c.Done == 1 }
+func (c Chore) IDStr() string          { return strconv.Itoa(c.ID) }
+func (c Chore) IsDone() bool           { return c.Done == 1 }
 func (c Chore) ChoreListIDStr() string { return strconv.Itoa(c.ChoreListID) }
 
 // Battery is the model for battery CRUD.

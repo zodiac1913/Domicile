@@ -37,6 +37,10 @@ func Init(dataDir string) error {
 	}
 
 	log.Printf("Database ready at %s", dbPath)
+
+	// Migrations: add columns that may not exist in older databases.
+	DB.Exec("ALTER TABLE products ADD COLUMN purchase_count INTEGER NOT NULL DEFAULT 0")
+
 	return nil
 }
 

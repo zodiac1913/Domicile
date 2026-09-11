@@ -23,6 +23,24 @@ Domicile aims to be a modern, user-friendly alternative for managing your househ
 - 👥 Multi-user support (planned)
 - 📤 Import/Export (planned — because data portability matters)
 
+## Screenshots
+
+### Login
+
+![Login](docs/screenshots/AdmiralBenMoreellLogin.png)
+
+| Dashboard | Products |
+|:---:|:---:|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Products](docs/screenshots/products.png) |
+
+| Meal Plan | Stock |
+|:---:|:---:|
+| ![Meal Plan](docs/screenshots/mealplan.png) | ![Stock](docs/screenshots/stock.png) |
+
+| Shopping List (Web) | Shopping List (Mobile) |
+|:---:|:---:|
+| ![Shopping List Web](docs/screenshots/shoppingWeb.png) | <img src="docs/screenshots/shoppingMobile.png" alt="Shopping List Mobile" width="280"> |
+
 ## Prerequisites
 
 - Go 1.25+

@@ -79,6 +79,12 @@ func getProductsForDropdown() []models.Location {
 	return products
 }
 
+func getFrequentProducts() []models.Location {
+	var products []models.Location
+	database.DB.Select(&products, "SELECT id, name FROM products WHERE active = 1 AND purchase_count > 0 ORDER BY purchase_count DESC, name")
+	return products
+}
+
 // ShoppingPage renders the shopping list.
 func ShoppingPage(c echo.Context) error {
 	storeID := activeStoreID(c)
@@ -98,9 +104,10 @@ func ShoppingPage(c echo.Context) error {
 // ShoppingNewForm renders the add item form.
 func ShoppingNewForm(c echo.Context) error {
 	products := getProductsForDropdown()
+	frequentProducts := getFrequentProducts()
 	storeID := activeStoreID(c)
 	currentItems := getShoppingItems(storeID)
-	return render(c, http.StatusOK, partials.ShoppingItemForm(nil, products, currentItems))
+	return render(c, http.StatusOK, partials.ShoppingItemForm(nil, products, frequentProducts, currentItems))
 }
 
 // ShoppingEditForm renders the edit item form.
@@ -123,7 +130,7 @@ func ShoppingEditForm(c echo.Context) error {
 		return c.String(http.StatusNotFound, "Item not found")
 	}
 	products := getProductsForDropdown()
-	return render(c, http.StatusOK, partials.ShoppingItemForm(&item, products, nil))
+	return render(c, http.StatusOK, partials.ShoppingItemForm(&item, products, nil, nil))
 }
 
 // CreateShoppingItem handles POST /shopping.
@@ -151,6 +158,39 @@ func CreateShoppingItem(c echo.Context) error {
 		productID, note, amount)
 
 	return ShoppingPage(c)
+}
+
+// CreateShoppingItemContinue handles POST /shopping/add-continue.
+// It adds the item then re-renders the add form so the user can keep adding.
+func CreateShoppingItemContinue(c echo.Context) error {
+	productIDStr := c.FormValue("product_id")
+	note := c.FormValue("note")
+	amount, _ := strconv.ParseFloat(c.FormValue("amount"), 64)
+	if amount <= 0 {
+		amount = 1
+	}
+
+	var productID *int
+	if productIDStr != "" && productIDStr != "0" {
+		pid, _ := strconv.Atoi(productIDStr)
+		productID = &pid
+	}
+
+	if productID == nil && strings.TrimSpace(note) == "" {
+		return c.String(http.StatusBadRequest, `<div class="alert alert-danger">Did not provide an item — select a product or enter a note.</div>`)
+	}
+
+	database.DB.Exec(`
+		INSERT INTO shopping_list (shopping_list_id, product_id, note, amount)
+		VALUES (1, ?, NULLIF(?, ''), ?)`,
+		productID, note, amount)
+
+	// Re-render the add form with refreshed current items list
+	products := getProductsForDropdown()
+	frequentProducts := getFrequentProducts()
+	storeID := activeStoreID(c)
+	currentItems := getShoppingItems(storeID)
+	return render(c, http.StatusOK, partials.ShoppingItemForm(nil, products, frequentProducts, currentItems))
 }
 
 // UpdateShoppingItem handles PUT /shopping/:id.
@@ -242,18 +282,30 @@ func DeleteShoppingItem(c echo.Context) error {
 
 // ClearDoneItems removes all done items.
 func ClearDoneItems(c echo.Context) error {
+	// Increment purchase_count for products that were on the done list
+	database.DB.Exec(`
+		UPDATE products SET purchase_count = purchase_count + 1
+		WHERE id IN (SELECT product_id FROM shopping_list WHERE done = 1 AND product_id IS NOT NULL)`)
 	database.DB.Exec("DELETE FROM shopping_list WHERE done = 1")
 	return ShoppingPage(c)
 }
 
 // ClearList removes every item from the shopping list.
 func ClearList(c echo.Context) error {
+	// Increment purchase_count for all products on the list
+	database.DB.Exec(`
+		UPDATE products SET purchase_count = purchase_count + 1
+		WHERE id IN (SELECT product_id FROM shopping_list WHERE product_id IS NOT NULL)`)
 	database.DB.Exec("DELETE FROM shopping_list")
 	return ShoppingPage(c)
 }
 
 // AddDoneToStock pushes all done items with a product_id into stock, then removes them.
 func AddDoneToStock(c echo.Context) error {
+	// Increment purchase_count for products being added to stock
+	database.DB.Exec(`
+		UPDATE products SET purchase_count = purchase_count + 1
+		WHERE id IN (SELECT product_id FROM shopping_list WHERE done = 1 AND product_id IS NOT NULL)`)
 	var doneIDs []int
 	database.DB.Select(&doneIDs, "SELECT id FROM shopping_list WHERE done = 1 AND product_id IS NOT NULL")
 	for _, id := range doneIDs {

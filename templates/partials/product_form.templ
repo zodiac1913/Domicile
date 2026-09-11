@@ -167,6 +167,14 @@ templ productFormInner(p *models.ProductDetail, fd models.ProductFormData) {
 				/>
 			</div>
 		}
+		if fv(fd.Fields, "purchase_count") {
+			<div class="col-md-2">
+				@formLabel("purchase_count", fn(fd.Fields, "purchase_count"), fdesc(fd.Fields, "purchase_count"))
+				<input type="number" class="form-control" id="purchase_count" name="purchase_count" min="0"
+					if p != nil { value={ p.PurchaseCountStr() } } else { value="0" }
+				/>
+			</div>
+		}
 		if fv(fd.Fields, "calories") {
 			<div class="col-md-2">
 				@formLabel("calories", fn(fd.Fields, "calories"), fdesc(fd.Fields, "calories"))
@@ -371,6 +379,10 @@ templ ProductView(p models.ProductDetail, fd models.ProductFormData) {
 				if fv(fd.Fields, "min_stock_amount") {
 					<dt class="col-sm-4">{ fn(fd.Fields, "min_stock_amount") }</dt>
 					<dd class="col-sm-8">{ itoa(p.MinStockAmount) }</dd>
+				}
+				if fv(fd.Fields, "purchase_count") {
+					<dt class="col-sm-4">{ fn(fd.Fields, "purchase_count") }</dt>
+					<dd class="col-sm-8">{ p.PurchaseCountStr() }</dd>
 				}
 				if fv(fd.Fields, "calories") && p.Calories != nil && *p.Calories > 0 {
 					<dt class="col-sm-4">{ fn(fd.Fields, "calories") }</dt>

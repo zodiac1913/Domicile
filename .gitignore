@@ -1,6 +1,9 @@
 # Database
 data/
 
+# Runtime user uploads (equipment manuals, user photos, etc.)
+images/
+
 # Binary
 Domicile
 __debug_bin*

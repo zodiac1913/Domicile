@@ -38,6 +38,7 @@ var FieldDescriptions = map[string]map[string]FieldMeta{
 		"active":                       {DisplayName: "Active", Description: "Inactive products are hidden from most views"},
 		"auto_reprint_stock_label":     {DisplayName: "Auto Reprint Stock Label", Description: "When a stock entry's due date changes automatically (from opening, freezing, or thawing), its label is reprinted"},
 		"disable_open":                 {DisplayName: "Can't Be Opened", Description: "This product does not support the open/unopened tracking workflow"},
+		"purchase_count":               {DisplayName: "Purchase Count", Description: "How many times this product has been added to or purchased from the shopping list. Used to surface frequently bought items"},
 		"default_purchase_price_type":  {DisplayName: "Default Purchase Price Type", Description: "The default price type pre-filled on purchase: unspecified, unit price, or total price"},
 		"qu_id_stock":                  {DisplayName: "Quantity Unit Stock", Description: "The unit used for tracking this product in stock"},
 		"qu_id_purchase":               {DisplayName: "Default QU Purchase", Description: "The default unit used on purchase and when adding to the shopping list"},

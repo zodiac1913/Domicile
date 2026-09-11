@@ -84,6 +84,7 @@ func main() {
 	e.GET("/shopping", handlers.ShoppingPage)
 	e.GET("/shopping/new", handlers.ShoppingNewForm)
 	e.POST("/shopping", handlers.CreateShoppingItem)
+	e.POST("/shopping/add-continue", handlers.CreateShoppingItemContinue)
 	e.GET("/shopping/:id/edit", handlers.ShoppingEditForm)
 	e.PUT("/shopping/:id", handlers.UpdateShoppingItem)
 	e.DELETE("/shopping/:id", handlers.DeleteShoppingItem)

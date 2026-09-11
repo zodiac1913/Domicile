@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS products (
     auto_reprint_stock_label TINYINT NOT NULL DEFAULT 0,
     disable_open TINYINT NOT NULL DEFAULT 0,
     last_price DECIMAL(15,2),
+    purchase_count INTEGER NOT NULL DEFAULT 0,
     row_created_timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
 );
 
