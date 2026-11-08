@@ -188,14 +188,16 @@ class SmlReactiveButton extends HTMLElement {
     //build reactive button
     srb.innerHTML='';
     //outer span
-    let outerSpan = {n:"span",c: srb.dataset.icon + " p-0",
-      b:[{ n: "span", c: "sr-only visually-hidden", s:"position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;", t: srb.dataset.text }]};
-    //inner span (omit for icon-only button variants)
-    if(!isIconOnly){
-      let innerSpan = {n:"span",c:"ms-2 smlRBText hideOnMediumOrLessWindow",t:srb.dataset.text};
-      outerSpan.b.push(innerSpan);
+    let outerSpan = {n:"span",c: srb.dataset.icon + " p-0", b:[]};
+    if(isIconOnly){
+      //icon-only buttons have no visible text, so keep the sr-only label
+      outerSpan.b.push({ n: "span", c: "sr-only visually-hidden", s:"position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;", t: srb.dataset.text });
+    } else {
+      //non-icon buttons render a single label source (visible text); aria-label covers narrow windows
+      outerSpan.b.push({n:"span",c:"ms-2 smlRBText hideOnMediumOrLessWindow",t:srb.dataset.text});
     }
     srb.insertAdjacentHTML("afterbegin",jmlToHtml(outerSpan));
+    dedupeSrbLabel(srb);
   }
 
   ensureBaseClasses() {
@@ -761,6 +763,47 @@ class SmlReactiveButton extends HTMLElement {
 
 
 
+}
+
+/**
+ * Remove any sr-only label that repeats the button's visible smlRBText label.
+ * Icon-only buttons have no smlRBText, so their sr-only label is kept.
+ *
+ * @param {HTMLElement} srb sml-reactive-button element
+ */
+function dedupeSrbLabel(srb) {
+  const visible = srb.querySelector(".smlRBText");
+  if (!visible) return;
+  const text = (visible.textContent || "").trim().toLowerCase();
+  if (!text) return;
+  srb.querySelectorAll(".sr-only, .visually-hidden").forEach(sr => {
+    if (sr !== visible && (sr.textContent || "").trim().toLowerCase() === text) sr.remove();
+  });
+}
+
+/**
+ * Dedupe every sml-reactive-button in (or equal to) the given root.
+ *
+ * @param {Element|Document} root subtree to scan
+ */
+function dedupeAllSrbLabels(root) {
+  if (root.matches && root.matches("sml-reactive-button")) dedupeSrbLabel(root);
+  if (root.querySelectorAll) root.querySelectorAll("sml-reactive-button").forEach(dedupeSrbLabel);
+}
+
+// SPA guard: buttons can be (re)built after load by swaps, other components, or
+// another copy of this module, so watch the DOM and strip duplicates wherever
+// they appear. Installed once per page.
+if (!window.__smlSrbLabelGuard) {
+  window.__smlSrbLabelGuard = new MutationObserver(mutations => {
+    for (const m of mutations) {
+      const host = m.target.closest ? m.target.closest("sml-reactive-button") : null;
+      if (host) dedupeSrbLabel(host);
+      m.addedNodes.forEach(n => { if (n.nodeType === Node.ELEMENT_NODE) dedupeAllSrbLabels(n); });
+    }
+  });
+  window.__smlSrbLabelGuard.observe(document.documentElement, { childList: true, subtree: true });
+  dedupeAllSrbLabels(document);
 }
 
 customElements.define("sml-reactive-button", SmlReactiveButton);

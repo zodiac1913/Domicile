@@ -155,7 +155,7 @@ func LoginSubmit(c echo.Context) error {
 		ID       int    `db:"id"`
 		Password string `db:"password"`
 	}
-	err := database.DB.Get(&user, "SELECT id, password FROM users WHERE username = ?", username)
+	err := database.DB.Get(&user, "SELECT id, password FROM users WHERE username = ? COLLATE NOCASE", username)
 	if err != nil {
 		return render(c, http.StatusOK, templates.LoginPageWithError("Invalid username or password"))
 	}

@@ -36,7 +36,7 @@ func main() {
 	e.POST("/login", handlers.LoginSubmit)
 	e.GET("/setup", handlers.SetupPage)
 	e.POST("/setup", handlers.SetupCreate)
-	e.GET("/logout", handlers.Logout)
+	e.POST("/logout", handlers.Logout)
 
 	// Auth middleware for everything else
 	e.Use(handlers.AuthMiddleware)

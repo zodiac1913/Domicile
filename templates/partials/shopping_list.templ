@@ -94,7 +94,7 @@ templ ShoppingTable(items []models.ShoppingListItem) {
 	}
 }
 
-templ ShoppingItemForm(item *models.ShoppingListItem, products []models.Location, frequentProducts []models.Location, currentItems []models.ShoppingListItem) {
+templ ShoppingItemForm(item *models.ShoppingListItem, products []models.Location, frequentProducts []models.Location, currentItems []models.ShoppingListItem, freqOnly bool) {
 	<div class="mb-3">
 		<button class="btn btn-sm btn-outline-secondary"
 			hx-get="/shopping"
@@ -114,11 +114,11 @@ templ ShoppingItemForm(item *models.ShoppingListItem, products []models.Location
 			if item != nil {
 				<form hx-put={ "/shopping/" + item.IDStr() }
 					hx-target="#main-content" hx-swap="innerHTML" hx-push-url="/shopping">
-					@shoppingFormFields(item, products, frequentProducts)
+					@shoppingFormFields(item, products, frequentProducts, false)
 				</form>
 			} else {
 				<form id="shopping-add-form">
-					@shoppingFormFields(nil, products, frequentProducts)
+					@shoppingFormFields(nil, products, frequentProducts, freqOnly)
 				</form>
 			}
 		</div>
@@ -138,56 +138,64 @@ templ ShoppingItemForm(item *models.ShoppingListItem, products []models.Location
 		</div>
 	}
 	<script>
+		// Show one product <select> and hide the other. Both selects always keep
+		// their own name and stay enabled — the server just uses whichever one
+		// carries a value. No disabling, ever.
 		function toggleFrequentProducts(on) {
 			var allSel = document.getElementById('product_id');
 			var freqSel = document.getElementById('product_id_freq');
+			var hidden = document.getElementById('freq-only-input');
 			if (!allSel || !freqSel) return;
-			if (on) {
-				allSel.classList.add('d-none');
-				allSel.removeAttribute('name');
-				allSel.disabled = true;
-				freqSel.classList.remove('d-none');
-				freqSel.setAttribute('name', 'product_id');
-				freqSel.disabled = false;
-			} else {
-				freqSel.classList.add('d-none');
-				freqSel.removeAttribute('name');
-				freqSel.disabled = true;
-				allSel.classList.remove('d-none');
-				allSel.setAttribute('name', 'product_id');
-				allSel.disabled = false;
-			}
-			// Persist the choice for this browser session so it survives form re-renders.
-			try { sessionStorage.setItem('domicile.freqPurchasedOnly', on ? '1' : '0'); } catch (e) {}
+			allSel.classList.toggle('d-none', on);
+			freqSel.classList.toggle('d-none', !on);
+			if (hidden) hidden.value = on ? '1' : '0';
+			// Persist the choice so it survives browser restarts.
+			try { localStorage.setItem('domicile.freqPurchasedOnly', on ? '1' : '0'); } catch (e) {}
 		}
-		// Restore the persisted toggle state on (re)render.
+		// On a fresh full-page load the server can't know localStorage, so apply
+		// the saved preference once. On htmx swaps the server already rendered the
+		// right state (it receives freq_only in the form), so nothing to do there.
 		(function() {
 			var t = document.getElementById('freq-toggle');
 			if (!t) return;
 			var saved = '0';
-			try { saved = sessionStorage.getItem('domicile.freqPurchasedOnly') || '0'; } catch (e) {}
-			if (saved === '1') {
-				t.checked = true;
-				toggleFrequentProducts(true);
+			try { saved = localStorage.getItem('domicile.freqPurchasedOnly') || '0'; } catch (e) {}
+			var on = saved === '1';
+			if (on !== t.checked) {
+				t.checked = on;
+				toggleFrequentProducts(on);
 			}
 		})();
 	</script>
 }
 
-templ shoppingFormFields(item *models.ShoppingListItem, products []models.Location, frequentProducts []models.Location) {
+templ shoppingFormFields(item *models.ShoppingListItem, products []models.Location, frequentProducts []models.Location, freqOnly bool) {
 	<div class="row g-3">
 		<div class="col-md-5">
 			<label for="product_id" class="form-label">Product (optional)</label>
 			if len(frequentProducts) > 0 && item == nil {
 				<div class="form-check form-switch mb-2">
 					<input class="form-check-input" type="checkbox" role="switch" id="freq-toggle"
+						if freqOnly {
+							checked
+						}
 						onchange="toggleFrequentProducts(this.checked)"/>
 					<label class="form-check-label" for="freq-toggle">
 						<small>Frequently purchased only</small>
 					</label>
 				</div>
+				// Carries the toggle state to the server on Add & Continue so the
+				// correct select is rendered active without relying on post-swap JS.
+				<input type="hidden" id="freq-only-input" name="freq_only"
+					if freqOnly {
+						value="1"
+					} else {
+						value="0"
+					}/>
 			}
-			<select class="form-select" id="product_id" name="product_id">
+			<select
+				class={ "form-select", templ.KV("d-none", freqOnly && item == nil) }
+				id="product_id" name="product_id">
 				<option value="">— Freeform note only —</option>
 				for _, p := range products {
 					<option value={ strconv.Itoa(p.ID) }
@@ -198,7 +206,9 @@ templ shoppingFormFields(item *models.ShoppingListItem, products []models.Locati
 					>{ p.Name }</option>
 				}
 			</select>
-			<select class="form-select d-none" id="product_id_freq" disabled>
+			<select
+				class={ "form-select", templ.KV("d-none", !(freqOnly && item == nil)) }
+				id="product_id_freq" name="product_id_freq">
 				<option value="">— Freeform note only —</option>
 				for _, p := range frequentProducts {
 					<option value={ strconv.Itoa(p.ID) }>{ p.Name }</option>

@@ -1,12 +1,15 @@
 package partials
 
-import "Domicile/internal/models"
+import (
+	"Domicile/internal/assets"
+	"Domicile/internal/models"
+)
 
 templ NavbarUserBubble(user models.User) {
 	<button class="btn btn-link p-0 border-0 dropdown-toggle" type="button"
 		data-bs-toggle="dropdown" aria-expanded="false" title={ user.FullName() }>
 		if user.PictureFileName != "" {
-			<img src={ "/images/users/" + user.PictureFileName }
+			<img src={ "/images/users/" + user.PictureFileName + "?v=" + assets.Version }
 				class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;"
 				alt={ user.FullName() }/>
 		} else {
@@ -35,9 +38,12 @@ templ NavbarUserBubble(user models.User) {
 		}
 		<li><hr class="dropdown-divider"/></li>
 		<li>
-			<a class="dropdown-item" href="/logout">
-				<i class="bi bi-box-arrow-right me-2"></i>Sign Out
-			</a>
+			// POST-only so link checkers/prefetchers can't end the session.
+			<form method="post" action="/logout" class="m-0">
+				<button type="submit" class="dropdown-item">
+					<i class="bi bi-box-arrow-right me-2"></i>Sign Out
+				</button>
+			</form>
 		</li>
 	</ul>
 }

@@ -74,7 +74,7 @@ templ ShoppingContent(items []models.ShoppingListItem, stores []models.ShoppingL
 				data-bs-toggle="tooltip" title="Wipe the entire shopping list regardless of done status">
 				<i class="bi bi-trash me-1"></i>Clear List
 			</button>
-			<a class="btn btn-sm btn-outline-success"
+			<a class="btn btn-sm btn-WhiteSmoke"
 				hx-get={ "/shopping/shop?store_id=" + strconv.Itoa(storeID) }
 				hx-target="#main-content" hx-swap="innerHTML"
 				hx-push-url={ "/shopping/shop?store_id=" + strconv.Itoa(storeID) }>

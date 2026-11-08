@@ -289,3 +289,11 @@ body {
 .instruction-step:hover .card-body {
     background-color: rgba(255, 255, 255, 0.03);
 }
+
+/* Navbar buttons get a white background on hover/open; keep text readable */
+.navbar sml-reactive-button.btn-outline-light:hover,
+.navbar sml-reactive-button.btn-outline-light:focus-visible,
+.navbar sml-reactive-button.btn-outline-light:active,
+.navbar sml-reactive-button.btn-outline-light.show {
+  color: MidnightBlue !important;
+}

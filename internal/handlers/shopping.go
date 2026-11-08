@@ -107,7 +107,7 @@ func ShoppingNewForm(c echo.Context) error {
 	frequentProducts := getFrequentProducts()
 	storeID := activeStoreID(c)
 	currentItems := getShoppingItems(storeID)
-	return render(c, http.StatusOK, partials.ShoppingItemForm(nil, products, frequentProducts, currentItems))
+	return render(c, http.StatusOK, partials.ShoppingItemForm(nil, products, frequentProducts, currentItems, false))
 }
 
 // ShoppingEditForm renders the edit item form.
@@ -130,12 +130,23 @@ func ShoppingEditForm(c echo.Context) error {
 		return c.String(http.StatusNotFound, "Item not found")
 	}
 	products := getProductsForDropdown()
-	return render(c, http.StatusOK, partials.ShoppingItemForm(&item, products, nil, nil))
+	return render(c, http.StatusOK, partials.ShoppingItemForm(&item, products, nil, nil, false))
 }
 
 // CreateShoppingItem handles POST /shopping.
+// shoppingProductID reads the selected product id from the add/edit form.
+// The form has two selects (all products and frequently-purchased); only one
+// is visible at a time but both submit, so prefer product_id and fall back to
+// product_id_freq.
+func shoppingProductID(c echo.Context) string {
+	if v := c.FormValue("product_id"); v != "" && v != "0" {
+		return v
+	}
+	return c.FormValue("product_id_freq")
+}
+
 func CreateShoppingItem(c echo.Context) error {
-	productIDStr := c.FormValue("product_id")
+	productIDStr := shoppingProductID(c)
 	note := c.FormValue("note")
 	amount, _ := strconv.ParseFloat(c.FormValue("amount"), 64)
 	if amount <= 0 {
@@ -163,7 +174,7 @@ func CreateShoppingItem(c echo.Context) error {
 // CreateShoppingItemContinue handles POST /shopping/add-continue.
 // It adds the item then re-renders the add form so the user can keep adding.
 func CreateShoppingItemContinue(c echo.Context) error {
-	productIDStr := c.FormValue("product_id")
+	productIDStr := shoppingProductID(c)
 	note := c.FormValue("note")
 	amount, _ := strconv.ParseFloat(c.FormValue("amount"), 64)
 	if amount <= 0 {
@@ -185,12 +196,14 @@ func CreateShoppingItemContinue(c echo.Context) error {
 		VALUES (1, ?, NULLIF(?, ''), ?)`,
 		productID, note, amount)
 
-	// Re-render the add form with refreshed current items list
+	// Re-render the add form with refreshed current items list. Preserve the
+	// "Frequently purchased only" toggle state that the form submitted.
+	freqOnly := c.FormValue("freq_only") == "1"
 	products := getProductsForDropdown()
 	frequentProducts := getFrequentProducts()
 	storeID := activeStoreID(c)
 	currentItems := getShoppingItems(storeID)
-	return render(c, http.StatusOK, partials.ShoppingItemForm(nil, products, frequentProducts, currentItems))
+	return render(c, http.StatusOK, partials.ShoppingItemForm(nil, products, frequentProducts, currentItems, freqOnly))
 }
 
 // UpdateShoppingItem handles PUT /shopping/:id.

@@ -9,11 +9,12 @@ templ Layout(title string) {
 		<title>{ title } - Domicile</title>
 		<link rel="icon" type="image/jpeg" href="/static/images/KingBee.jpeg"/>
 		<link href="/static/css/BSPlus.css" rel="stylesheet"/>
+		<link href="/static/css/catsStrap.css" rel="stylesheet"/>
 		<link href="/static/vendor/bootstrap-icons.min.css" rel="stylesheet"/>
 		<script src="/static/vendor/htmx.min.js"></script>
 		<link href="/static/vendor/quill.snow.css" rel="stylesheet"/>
 		<link href="/static/js/sml/sml.css" rel="stylesheet"/>
-		<link href="/static/css/app.css" rel="stylesheet"/>
+		<link href={ "/static/css/app.css?v=" + AssetVersion } rel="stylesheet"/>
 	</head>
 	<body hx-indicator="#loading-indicator">
 		<div id="loading-indicator"></div>
@@ -74,12 +75,12 @@ templ Layout(title string) {
 					</div>
 					<!-- Inventory (Equipment) -->
 					<sml-reactive-button data-url="/inventory" data-text="Inventory" data-icon="bi bi-tools"
-						class="smlRB btn btn-sm btn-outline-light border-0 text-white text-nowrap" title="Equipment" data-active-by-url="true"></sml-reactive-button>
+						class="smlRB btn btn-sm btn-outline-light border-0 text-white text-nowrap" title="Inventory (Equipment)" data-active-by-url="true"></sml-reactive-button>
 					<!-- Tasking dropdown -->
 					<div class="dropdown">
 						<sml-reactive-button class="smlRB btn btn-sm btn-outline-light border-0 text-white text-nowrap dropdown-toggle"
 							data-text="Tasking" data-icon="bi bi-list-task" data-button-type="menu"
-							data-bs-toggle="dropdown" aria-expanded="false" title="Tasks and Chores"></sml-reactive-button>
+							data-bs-toggle="dropdown" aria-expanded="false" title="Tasking (Tasks and Chores)"></sml-reactive-button>
 						<ul class="dropdown-menu dropdown-menu-dark">
 							<li><sml-reactive-button data-url="/tasks" data-text="Tasks" data-icon="bi bi-list-task"
 								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Tasks" data-active-by-url="true"></sml-reactive-button></li>
@@ -91,7 +92,7 @@ templ Layout(title string) {
 					<div class="dropdown">
 						<sml-reactive-button class="smlRB btn btn-sm btn-outline-light border-0 text-white text-nowrap dropdown-toggle"
 							data-text="Batteries" data-icon="bi bi-battery-half" data-button-type="menu"
-							data-bs-toggle="dropdown" aria-expanded="false" title="Battery tracking"></sml-reactive-button>
+							data-bs-toggle="dropdown" aria-expanded="false" title="Batteries (Battery tracking)"></sml-reactive-button>
 						<ul class="dropdown-menu dropdown-menu-dark">
 							<li><sml-reactive-button data-url="/batteries" data-text="Battery" data-icon="bi bi-battery-half"
 								class="smlRB btn btn-sm border-0 text-white text-nowrap dropdown-item" title="Batteries" data-active-by-url="true"></sml-reactive-button></li>
@@ -127,7 +128,7 @@ templ Layout(title string) {
 		</div>
 		<script src="/static/vendor/bootstrap.bundle.min.js"></script>
 		<script src="/static/vendor/quill.js"></script>
-		<script type="module" src="/static/js/sml/smlReactiveButton.js"></script>
+		<script type="module" src={ "/static/js/sml/smlReactiveButton.js?v=" + AssetVersion }></script>
 		<script>
 			// Override htmx confirm with Bootstrap modal.
 			document.body.addEventListener('htmx:confirm', function(e) {

@@ -1,6 +1,9 @@
 package partials
 
-import "Domicile/internal/models"
+import (
+	"Domicile/internal/assets"
+	"Domicile/internal/models"
+)
 
 templ AdminUserList(users []models.User) {
 	<div class="row g-3">
@@ -9,7 +12,7 @@ templ AdminUserList(users []models.User) {
 				<div class="card text-center">
 					<div class="card-body">
 						if u.PictureFileName != "" {
-							<img src={ "/images/users/" + u.PictureFileName }
+							<img src={ "/images/users/" + u.PictureFileName + "?v=" + assets.Version }
 								class="rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;"
 								alt={ u.FullName() }/>
 						} else {
@@ -111,7 +114,7 @@ templ adminUserFields(user *models.User) {
 			<label for="picture" class="form-label">Picture</label>
 			if user != nil && user.PictureFileName != "" {
 				<div class="mb-2">
-					<img src={ "/images/users/" + user.PictureFileName }
+					<img src={ "/images/users/" + user.PictureFileName + "?v=" + assets.Version }
 						class="rounded-circle" style="width: 60px; height: 60px; object-fit: cover;"
 						alt={ user.FullName() }/>
 				</div>
