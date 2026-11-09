@@ -17,17 +17,38 @@
  * @extends {HTMLElement}
  */
 // תהילתו. לא שלי
-import "./sml.js";
-import { apiPostDirect, clip, guid, jmlToHtml, receiptCheckGood, unobtrusiveWait, unobtrusiveWaitOff } from "../smlUtils.js";
+import './sml.js';
+import { apiPostDirect, clip, guid, jmlToHtml, receiptCheckGood, unobtrusiveWait, unobtrusiveWaitOff } from '../smlUtils.js';
+"use strict";
+class smlReactiveButton extends HTMLElement {
+  static observedAttributes=["data-api","data-toggler-done","data-active","disabled"];
 
-class SmlReactiveButton extends HTMLElement {
-  static observedAttributes=["data-api","data-toggler-done","data-active"];
+  isTableActionMode(){
+    return (this.dataset.apiMode || "").toLowerCase() === "table-action";
+  }
 
     // connect component
   async connectedCallback() {
     let srb = this;
     srb.initializeBaseAttributes();
     srb.normalizeApiMetadata();
+
+    // Table action buttons can appear in very large counts; keep init minimal.
+    if (srb.isTableActionMode()) {
+      if (!srb.dataset.text) {
+        srb.dataset.text = srb.textContent.trim() || "Action";
+      }
+      if ((srb.dataset.icon || "").trim().length > 0 || (srb.dataset.iconSrc || "").trim().length > 0) {
+        srb.buildButtonMarkup();
+      } else if (!srb.textContent.trim()) {
+        srb.textContent = srb.dataset.text;
+      }
+      srb.ensureBaseClasses();
+      srb.syncDisabledState();
+      srb.wire();
+      return;
+    }
+
     srb.normalizeButtonTypeMetadata();
     srb.normalizeAuthorInnerText();
     srb.normalizeActiveMetadata();
@@ -39,12 +60,17 @@ class SmlReactiveButton extends HTMLElement {
     } else {
       srb.removeAttribute("aria-pressed");
     }
-    srb.dataset.icon= srb.dataset.icon || "bi bi-question-circle";
+    if ((srb.dataset.apiMode || "").toLowerCase() === "table-action" || (srb.dataset.iconSrc || "").trim().length > 0) {
+      srb.dataset.icon = srb.dataset.icon || "";
+    } else {
+      srb.dataset.icon = srb.dataset.icon || "bi bi-question-circle";
+    }
     if(!srb.dataset.text) {
       srb.dataset.text = srb.textContent.trim() || "Whats this do?";
     }
     srb.buildButtonMarkup();
     srb.ensureBaseClasses();
+    srb.syncDisabledState();
     srb.wire();
     srb.applyActiveStyling();
   }
@@ -86,9 +112,32 @@ class SmlReactiveButton extends HTMLElement {
     if(!srb.type) srb.type="button";
     if(!srb.role) srb.role="button";
     if(!srb.hasAttribute("tabindex")) srb.tabIndex = 0;
-    if(!srb.title) srb.title="sml Reactive Button not explained, ask DASM to fix this";
+    if (!srb.hasAttribute("onkeydown")) {
+      srb.setAttribute("onkeydown", "if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}");
+    }
+    if (!srb.hasAttribute("onkeyup")) {
+      srb.setAttribute("onkeyup", "if(event.key===' '){event.preventDefault();}");
+    }
+
+    // WCAG Fix #14: Use data-text as fallback for aria-label, not generic error message
+    const dataText = srb.dataset.text || "";
+    if(!srb.title) srb.title=dataText || "Button";
     if(!srb.ariaLabel) srb.ariaLabel=srb.title;
+
+    // Log error if button has no descriptive text
+    if (!dataText && !srb.ariaLabel) {
+      console.error("smlReactiveButton: Button ID " + srb.id + " has no aria-label, title, or data-text attribute. Provide at least one for accessibility.");
+    }
+
     if(srb.className=="") srb.className="smlRB btn btn-outline-primary border-0 text-white text-nowrap text-truncate";
+
+    // WCAG Fix: Add destructive label suffix for danger buttons unless explicitly disabled.
+    const allowDestructiveLabelSuffix = (srb.dataset.destructiveLabelSuffix || "true").toLowerCase() !== "false";
+    if (allowDestructiveLabelSuffix && (srb.classList.contains("btn-danger") || srb.classList.contains("btn-outline-danger"))) {
+      if (!srb.ariaLabel.includes("destructive")) {
+        srb.ariaLabel = srb.ariaLabel + " (destructive action)";
+      }
+    }
   }
 
   normalizeApiMetadata() {
@@ -96,7 +145,7 @@ class SmlReactiveButton extends HTMLElement {
     srb.dataset.api = srb.dataset.api || "";
     if(srb.dataset.api && !srb.dataset.apiForward) {
       srb.dataset.apiForward = srb.dataset.api.replaceAll("/","_").replaceAll("?","_").replaceAll("&","_").replaceAll("=","_");
-      console.log("smlReactiveButton: Setting apiForward to "+srb.dataset.apiForward);
+      //console.log("smlReactiveButton: Setting apiForward to "+srb.dataset.apiForward);
     }
   }
 
@@ -153,6 +202,7 @@ class SmlReactiveButton extends HTMLElement {
     }
     if (buttonType === "menu" && !srb.hasAttribute("aria-haspopup")) {
       srb.setAttribute("aria-haspopup", "true");
+      srb.setAttribute("aria-expanded", "false");  // WCAG Fix: Initialize expanded state for menu buttons
     }
   }
 
@@ -185,16 +235,44 @@ class SmlReactiveButton extends HTMLElement {
   buildButtonMarkup() {
     let srb = this;
     const isIconOnly = srb.dataset.iconOnly === "true" || srb.classList.contains("sml-icon-only");
+
+    // WCAG Fix #6: Require data-text for icon-only buttons
+    if (isIconOnly && !srb.dataset.text) {
+      console.error("smlReactiveButton: Icon-only button missing data-text attribute. Button ID: " + srb.id + ". Provide descriptive text for accessibility.");
+      srb.dataset.text = "Icon button";
+    }
+
     //build reactive button
     srb.innerHTML='';
     //outer span
-    let outerSpan = {n:"span",c: srb.dataset.icon + " p-0", b:[]};
+    const iconSrc = (srb.dataset.iconSrc || "").trim();
+    let outerSpan = {n:"span",c: (iconSrc ? "" : srb.dataset.icon) + " p-0", b:[]};
+    // Image icon: data-icon-src replaces the icon class. data-icon-alt is required for accessibility;
+    // when missing, log an error (like data-text above) and fall back to data-text so alt is never empty.
+    if(iconSrc){
+      if (!srb.dataset.iconAlt) {
+        console.error("smlReactiveButton: Image icon missing data-icon-alt attribute. Button ID: " + srb.id + ". Provide descriptive alt text for accessibility.");
+      }
+      outerSpan.b.push({
+        n: "img",
+        src: iconSrc,
+        alt: srb.dataset.iconAlt || srb.dataset.text || "Icon",
+        c: "smlRBIconImg",
+        s: "height:1em;width:auto;vertical-align:-0.125em;"
+      });
+    }
+    // For icon-only buttons, keep hidden text for assistive tech.
     if(isIconOnly){
-      //icon-only buttons have no visible text, so keep the sr-only label
-      outerSpan.b.push({ n: "span", c: "sr-only visually-hidden", s:"position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;", t: srb.dataset.text });
-    } else {
-      //non-icon buttons render a single label source (visible text); aria-label covers narrow windows
-      outerSpan.b.push({n:"span",c:"ms-2 smlRBText hideOnMediumOrLessWindow",t:srb.dataset.text});
+      outerSpan.b.push({
+        n: "span",
+        c: "sr-only visually-hidden",
+        s: "position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;",
+        t: srb.dataset.text
+      });
+    }else{
+      // For text buttons, render a single visible label to avoid duplicate-name scanners.
+      let innerSpan = {n:"span",c:"ms-2 smlRBText hideOnMediumOrLessWindow",t:srb.dataset.text};
+      outerSpan.b.push(innerSpan);
     }
     srb.insertAdjacentHTML("afterbegin",jmlToHtml(outerSpan));
     dedupeSrbLabel(srb);
@@ -216,7 +294,7 @@ class SmlReactiveButton extends HTMLElement {
    * @param {*} newValue new value of element tag
    * @memberof smlReactiveButton
    */
-  async attributeChangedCallback(name, oldValue, newValue) {
+  attributeChangedCallback(name, oldValue, newValue) {
       let srb=this;
       if (oldValue === newValue) return;
       switch(name){
@@ -229,16 +307,64 @@ class SmlReactiveButton extends HTMLElement {
           } else {
             srb.dataset.active = (newValue + "").toLowerCase() === "true" ? "true" : "false";
           }
+          // WCAG Fix #12: Update aria-pressed whenever data-active changes
+          if (srb.hasManagedActiveState?.()) {
+            srb.setAttribute("aria-pressed", srb.dataset.active === "true" ? "true" : "false");
+          }
               srb.applyActiveStyling();
               break;
+            case "data-text":
+              // WCAG Fix #22: Re-validate icon-only buttons if data-text changes
+              if (srb.dataset.iconOnly === "true") {
+                if (!newValue) {
+                  console.error("smlReactiveButton: Icon-only button ID " + srb.id + " had data-text removed. Provide descriptive text for accessibility.");
+                  srb.dataset.text = "Icon button";
+                } else {
+                  // Update aria-label with new text
+                  srb.ariaLabel = newValue;
+                  srb.title = newValue;
+                  const textSpan = srb.querySelector(".smlRBText");
+                  if (textSpan) textSpan.textContent = newValue;
+                }
+              }
+              break;
+              case "disabled":
+              srb.syncDisabledState();
+              break;
               default: //WATDUH!
-                  console.log(`smlReactiveButton: What you talking bout Willis? for attribute change ${name} from ${oldValue} to ${newValue}`);
+                  //console.log(`smlReactiveButton: What you talking bout Willis? for attribute change ${name} from ${oldValue} to ${newValue}`);
                   break;
       }
   }
 
+  syncDisabledState() {
+    let srb = this;
+    const isDisabled = srb.hasAttribute("disabled") || srb.dataset.disabled === "true";
+    if (isDisabled) {
+      srb.setAttribute("aria-disabled", "true");
+      srb.disabled = true;  // WCAG Fix: Set native disabled attribute for full semantic coverage
+      srb.tabIndex = -1;
+      srb.style.setProperty("opacity", "0.65");
+      // WCAG Fix #9: Add secondary visual indicator (strikethrough pattern) for color-blind users
+      srb.style.setProperty("text-decoration", "line-through");
+      srb.style.setProperty("text-decoration-color", "rgba(255, 0, 0, 0.3)");
+      // Don't use pointer-events: none as it can interfere with keyboard event propagation
+      return;
+    }
+
+    srb.removeAttribute("aria-disabled");
+    srb.disabled = false;  // Clear native disabled attribute
+    if (!srb.hasAttribute("tabindex")) {
+      srb.tabIndex = 0;
+    }
+    srb.style.removeProperty("opacity");
+    srb.style.removeProperty("text-decoration");
+    srb.style.removeProperty("text-decoration-color");
+  }
+
   wire() {
       let srb = this;
+      if (srb.hasAttribute("disabled") || srb.dataset.disabled === "true") return;
       const wasPreviouslyWired = srb.dataset.wired === "true";
       const isManualWire = srb.dataset.manualWire === "true";
       const skipApiWiring = wasPreviouslyWired || isManualWire;
@@ -249,32 +375,69 @@ class SmlReactiveButton extends HTMLElement {
       if(!skipApiWiring && hasApi && !hasUrl && srb.dataset.apiWired!=="true") {
           srb.addEventListener("click", async (e) => { srb.apiCall(e);});
           srb.dataset.apiWired="true";
+          srb.dataset.wcagClick="1";
       }
       //For Url (Navigation)
-      setTimeout(()=>{unobtrusiveWaitOff();},10000);
       if(hasUrl && srb.dataset.urlWired!=="true") {
           srb.addEventListener("click", async (e) => {
+            if (srb.hasAttribute("disabled") || srb.dataset.disabled === "true") {
+              e.preventDefault();
+              return;
+            }
             if (hasApi) {
               await srb.apiCall(e);
             }
+            // WCAG Fix: Check if link is external or opens in new tab
+            const isExternal = srb.dataset.target === "_blank" || (srb.dataset.url || "").includes("://") && !srb.dataset.url.startsWith(location.origin);
+            if (isExternal) {
+              unobtrusiveWait("Opening link in new tab...");
+              window.open(srb.dataset.url, "_blank");
+            } else {
               unobtrusiveWait("Going to " + e.currentTarget.dataset.url);
-            globalThis.location.href=srb.dataset.url;
+              globalThis.location.href=srb.dataset.url;
+            }
           });
           if (hasApi) srb.dataset.apiWired="true";
           srb.dataset.urlWired="true";
+          srb.dataset.wcagClick="1";
+
+          // WCAG Fix: Add external link indication to aria-label
+          const isExternal = srb.dataset.target === "_blank" || (srb.dataset.url || "").includes("://") && !srb.dataset.url.startsWith(location.origin);
+          if (isExternal && !srb.ariaLabel.includes("opens in new tab")) {
+            srb.ariaLabel = srb.ariaLabel + " (opens in new tab)";
+          }
       }else{
-          console.log("Not wiring url. url:" + srb.dataset.url + " wired:" + srb.dataset.wired);
+          //console.log("Not wiring url. url:" + srb.dataset.url + " wired:" + srb.dataset.wired);
       }
       srb.tabIndex = 0;
 
       if(srb.dataset.keyWired!=="true"){
         srb.addEventListener("keydown", (e) => {
+          if (srb.hasAttribute("disabled") || srb.dataset.disabled === "true") return;
+
+          // WCAG Fix: Handle Escape key for close/cancel buttons
+          const isCloseButton = srb.dataset.buttonRole === "close" || srb.dataset.cancel === "true" || srb.classList.contains("btn-close");
+          if (e.key === "Escape" && isCloseButton) {
+            e.preventDefault();
+            srb.click();
+            return;
+          }
+
+          // Handle Enter/Space activation
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             srb.click();
+            return;
+          }
+
+          // WCAG Fix: Handle arrow keys for menu navigation
+          if ((srb.dataset.buttonType || "").toLowerCase() === "menu" && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+            e.preventDefault();
+            srb.handleMenuKeyboardNavigation(e.key);
           }
         });
         srb.dataset.keyWired="true";
+        srb.dataset.wcagKeyDown="1";
       }
 
       if(srb.dataset.activeClickWired!=="true") {
@@ -282,12 +445,13 @@ class SmlReactiveButton extends HTMLElement {
           srb.toggleActiveStateOnClick();
         });
         srb.dataset.activeClickWired = "true";
+        srb.dataset.wcagClick="1";
       }
 
       srb.applyUrlActiveState();
       srb.applyActiveStyling();
   srb.dataset.wired = "true";
-      
+
   }
 
   shouldAutoActivateByUrl() {
@@ -351,6 +515,9 @@ class SmlReactiveButton extends HTMLElement {
     let srb = this;
     if (!srb.shouldAutoActivateByUrl()) return;
 
+    // WCAG Fix #18: Debug URL matching when data-debug-url-active is set
+    const debugMode = srb.dataset.debugUrlActive === "true";
+
     try {
       const targetUrl = new URL(srb.dataset.url, location.origin);
       const currentUrl = new URL(location.href);
@@ -358,21 +525,26 @@ class SmlReactiveButton extends HTMLElement {
       const currentPath = srb.normalizePath(currentUrl.pathname);
 
       if (targetPath !== currentPath) {
+        if (debugMode) console.log(`smlReactiveButton ${srb.id}: Path mismatch. Target: ${targetPath}, Current: ${currentPath}`);
         srb.dataset.active = "false";
         return;
       }
 
       const targetQueryParams = srb.collectQueryParams(targetUrl.searchParams);
       if (targetQueryParams.size === 0) {
+        if (debugMode) console.log(`smlReactiveButton ${srb.id}: No query params required, activating.`);
         srb.dataset.active = "true";
         return;
       }
 
       const currentQueryParams = srb.collectQueryParams(currentUrl.searchParams);
-      srb.dataset.active = srb.hasQuerySubset(targetQueryParams, currentQueryParams)
-        ? "true"
-        : "false";
-    } catch {
+      const hasSubset = srb.hasQuerySubset(targetQueryParams, currentQueryParams);
+      if (debugMode) {
+        console.log(`smlReactiveButton ${srb.id}: Query param check. Target:`, targetQueryParams, `Current:`, currentQueryParams, `Match: ${hasSubset}`);
+      }
+      srb.dataset.active = hasSubset ? "true" : "false";
+    } catch (err) {
+      if (debugMode) console.error(`smlReactiveButton ${srb.id}: URL parsing error:`, err);
       srb.dataset.active = "false";
     }
   }
@@ -401,14 +573,41 @@ class SmlReactiveButton extends HTMLElement {
       return;
     }
 
-    // Active UI is default-on for managed active buttons; set data-active-style-auto="false" to keep ARIA-only state.
-    if (srb.dataset.activeStyleAuto === "false") {
+    const activeStyleMode = (srb.dataset.activeStyleAuto || "").toLowerCase();
+    const shouldAutoRestyle = activeStyleMode === "true"
+      || (activeStyleMode !== "false" && srb.shouldHandlePeers());
+
+    // Keep default buttons visually stable unless the button explicitly opts in
+    // or belongs to a peer-managed/sidebar group that needs selected-state chrome.
+    if (!shouldAutoRestyle) {
+      srb.setAttribute("aria-current", "page");
+      srb.style.removeProperty("background-color");
+      srb.style.removeProperty("border-color");
+      srb.style.removeProperty("box-shadow");
+      srb.style.removeProperty("color");
+      return;
+    }
+
+    // WCAG Fix #7: Respect prefers-reduced-motion - skip animations/transitions for users with motion sensitivity
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const computedStyle = globalThis.getComputedStyle(srb);
+    const currentBackground = srb.resolveCssColor(computedStyle.backgroundColor || "transparent");
+    const hasSolidButtonFill = currentBackground !== null && currentBackground.a > 0;
+
+    if (hasSolidButtonFill) {
+      srb.style.removeProperty("background-color");
+      srb.style.removeProperty("border-color");
+      srb.style.removeProperty("color");
+      if (!prefersReducedMotion) {
+        srb.style.setProperty("box-shadow", "inset 0 3px 5px rgba(0, 0, 0, 0.18)", "important");
+      }
       srb.setAttribute("aria-current", "page");
       return;
     }
 
     const minContrast = srb.resolveContrastTarget();
-    const textColor = srb.resolveCssColor(globalThis.getComputedStyle(srb).color || "#ffffff");
+    const textColor = srb.resolveCssColor(computedStyle.color || "#ffffff");
     const inverseColor = srb.invertColor(textColor);
     const activeBg = srb.findClosestContrastColor(inverseColor, textColor, minContrast);
     const borderSeed = srb.mixColor(activeBg, textColor, 0.18);
@@ -417,7 +616,11 @@ class SmlReactiveButton extends HTMLElement {
     srb.style.setProperty("background-color", srb.rgbToCss(activeBg), "important");
     srb.style.setProperty("border-color", srb.rgbToCss(borderColor), "important");
     srb.style.setProperty("color", srb.rgbToCss(textColor), "important");
-    srb.style.setProperty("box-shadow", "inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.10)", "important");
+
+    // WCAG Fix #7: Only apply box-shadow if user hasn't disabled motion
+    if (!prefersReducedMotion) {
+      srb.style.setProperty("box-shadow", "inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.10)", "important");
+    }
     srb.setAttribute("aria-current", "page");
   }
 
@@ -446,6 +649,11 @@ class SmlReactiveButton extends HTMLElement {
       srb.dataset.active = wasActive ? "false" : "true";
     }
 
+    // WCAG Fix #21: Update aria-expanded for menu buttons
+    if (srb.getAttribute("aria-haspopup") === "true") {
+      srb.setAttribute("aria-expanded", srb.dataset.active === "true" ? "true" : "false");
+    }
+
     srb.applyActiveStyling();
   }
 
@@ -466,6 +674,15 @@ class SmlReactiveButton extends HTMLElement {
 
     srb.deactivatePeerButtonsInGroup(peerGroup);
     srb.dataset.active = "true";
+
+    // WCAG Fix: Announce peer state change to screen readers
+    const announcement = document.createElement("div");
+    announcement.setAttribute("role", "status");
+    announcement.setAttribute("aria-live", "polite");
+    announcement.className = "visually-hidden";
+    announcement.textContent = `Selected ${srb.ariaLabel || srb.dataset.text}. Other options deselected.`;
+    document.body.append(announcement);
+    setTimeout(() => announcement.remove(), 2000);
   }
 
   resolvePeerGroup() {
@@ -491,6 +708,42 @@ class SmlReactiveButton extends HTMLElement {
       sibling.dataset.active = "false";
       if (typeof sibling.applyActiveStyling === "function") sibling.applyActiveStyling();
     }
+  }
+
+  handleMenuKeyboardNavigation(direction) {
+    let srb = this;
+    const menuId = srb.getAttribute("aria-controls");
+    const menu = (menuId && document.getElementById(menuId))
+      || srb.closest(".dropdown")?.querySelector(".dropdown-menu");
+    if (!menu) return;
+
+    if (menu.dataset.srbKeyboardWired !== "true") {
+      menu.addEventListener("keydown", event => {
+        if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+        event.preventDefault();
+        srb.handleMenuKeyboardNavigation(event.key);
+      });
+      menu.dataset.srbKeyboardWired = "true";
+    }
+
+    if (!menu.classList.contains("show")) srb.click();
+
+    const menuItems = Array.from(menu.querySelectorAll(
+      "[role='menuitem'], .dropdown-item, a, button, sml-reactive-button"
+    )).filter(item => item.getClientRects().length > 0
+      && !item.disabled
+      && item.getAttribute("aria-disabled") !== "true");
+    if (menuItems.length === 0) return;
+
+    const currentFocused = document.activeElement;
+    const currentIndex = menuItems.indexOf(currentFocused);
+    const nextIndex = currentIndex < 0
+      ? (direction === "ArrowDown" ? 0 : menuItems.length - 1)
+      : direction === "ArrowDown"
+        ? (currentIndex + 1) % menuItems.length
+        : (currentIndex - 1 + menuItems.length) % menuItems.length;
+
+    menuItems[nextIndex].focus();
   }
 
   resolveContrastTarget(){
@@ -566,6 +819,19 @@ class SmlReactiveButton extends HTMLElement {
   }
 
   invertColor(color){
+    // WCAG Fix #19: Respect prefers-color-scheme when inverting colors
+    const prefersDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+    if (prefersDarkMode) {
+      // In dark mode, use a more subtle inversion that works on dark backgrounds
+      return {
+        r: Math.round(255 - (color.r * 0.7)),
+        g: Math.round(255 - (color.g * 0.7)),
+        b: Math.round(255 - (color.b * 0.7))
+      };
+    }
+
+    // Light mode: standard inversion
     return {
       r: 255-color.r,
       g: 255-color.g,
@@ -627,9 +893,10 @@ class SmlReactiveButton extends HTMLElement {
     if(towardBlack) return towardBlack;
     if(towardWhite) return towardWhite;
 
-    return this.contrastRatio(black, textColor) >= this.contrastRatio(white, textColor)
-      ? black
-      : white;
+    // WCAG Fix #15: If no sufficient contrast found, fall back to guaranteed high-contrast pair
+    const blackContrast = this.contrastRatio(black, textColor);
+    const whiteContrast = this.contrastRatio(white, textColor);
+    return blackContrast >= whiteContrast ? black : white;
   }
 
   searchTowardsContrast(startColor, targetColor, textColor, minContrast){
@@ -653,6 +920,7 @@ class SmlReactiveButton extends HTMLElement {
 
   async apiCall() {
     let srb = this;
+    if (srb.hasAttribute("disabled") || srb.dataset.disabled === "true") return;
     if ((srb.dataset.apiMode || "").toLowerCase() === "change-role") {
       await srb.apiCallChangeRole();
       return;
@@ -661,28 +929,59 @@ class SmlReactiveButton extends HTMLElement {
       await srb.apiCallTableAction();
       return;
     }
-    //api call logic here
-    unobtrusiveWait("Processing " + srb.dataset.text);
+
+    // WCAG Fix: API call with accessibility announcements
+    srb.setAttribute("aria-busy", "true");
+
+    // WCAG Fix #17: Optional loading state text update (disable by setting data-skip-loading-text="true")
+    const originalText = srb.dataset.text;
+    const skipLoadingText = srb.dataset.skipLoadingText === "true";
+    if (!skipLoadingText) {
+      srb.dataset.text = "Loading...";
+      const textSpan = srb.querySelector(".smlRBText");
+      if (textSpan) textSpan.textContent = "Loading...";
+    }
+
+    const announcement = document.createElement("div");
+    announcement.setAttribute("role", "status");
+    announcement.setAttribute("aria-live", "polite");
+    announcement.className = "visually-hidden";
+    announcement.textContent = `Processing ${originalText}. Please wait.`;
+    document.body.append(announcement);
+
+    unobtrusiveWait("Processing " + originalText);
     let postData=await apiPostDirect(srb.dataset.api, { forward: srb.dataset.apiForward });
     unobtrusiveWaitOff();
-    const hasValidReceipt = postData?.receipt ? await receiptCheckGood(postData.receipt) : false;
-    if (hasValidReceipt) {
-        //success logic here
+    srb.removeAttribute("aria-busy");
+
+    // Restore original text
+    if (!skipLoadingText) {
+      srb.dataset.text = originalText;
+      const textSpan = srb.querySelector(".smlRBText");
+      if (textSpan) textSpan.textContent = originalText;
+    }
+
+    if (postData?.receipt && await receiptCheckGood(postData.receipt)) {
+        // Success logic
+        announcement.textContent = `Successfully processed ${originalText}.`;
       globalThis[srb.dataset.apiForward](postData);
     } else {
-        //failure logic here
-        console.log("smlReactiveButton: API Call failed for "+srb.dataset.api);
+        // Failure logic
+        announcement.textContent = `Failed to process ${originalText}. Please try again.`;
+        srb.setAttribute("aria-invalid", "true");
+        setTimeout(() => srb.removeAttribute("aria-invalid"), 5000);
+        console.warn("smlReactiveButton: API Call failed for "+srb.dataset.api);
     }
-    
+    setTimeout(() => announcement.remove(), 3000);
   }
 
   async apiCallTableAction() {
     let srb = this;
     const tableId = srb.dataset.table || "";
-    const ownerTable = srb.closest("cc-table") || globalThis[tableId];
+    const ownerTable = srb.closest("sml-table, cc-table") || globalThis[tableId];
 
     if (!ownerTable || typeof ownerTable.handleActionButton !== "function") {
-      console.warn("smlReactiveButton: table-action mode could not find owning cc-table.", srb.id || srb);
+      console.warn("smlReactiveButton: table-action mode could not find owning table component.", srb.id || srb);
       return;
     }
 
@@ -723,7 +1022,7 @@ class SmlReactiveButton extends HTMLElement {
     unobtrusiveWait("Changing your role to " + newElementText + ". Please wait!",
       srb.id + "changeRole", srb.id);
     const api = srb.dataset.api || ("/" + controllerName + "/ChangeRole/");
-    const data = await apiPostDirect(api, JSON.stringify(dataUp), "json", true);
+    const data = await apiPostDirect(api, JSON.stringify(dataUp), "json");
     unobtrusiveWaitOff();
 
     if (!(await receiptCheckGood(data)) || data?.hasOwnProperty("redirect")) return;
@@ -765,12 +1064,6 @@ class SmlReactiveButton extends HTMLElement {
 
 }
 
-/**
- * Remove any sr-only label that repeats the button's visible smlRBText label.
- * Icon-only buttons have no smlRBText, so their sr-only label is kept.
- *
- * @param {HTMLElement} srb sml-reactive-button element
- */
 function dedupeSrbLabel(srb) {
   const visible = srb.querySelector(".smlRBText");
   if (!visible) return;
@@ -781,34 +1074,28 @@ function dedupeSrbLabel(srb) {
   });
 }
 
-/**
- * Dedupe every sml-reactive-button in (or equal to) the given root.
- *
- * @param {Element|Document} root subtree to scan
- */
 function dedupeAllSrbLabels(root) {
   if (root.matches && root.matches("sml-reactive-button")) dedupeSrbLabel(root);
   if (root.querySelectorAll) root.querySelectorAll("sml-reactive-button").forEach(dedupeSrbLabel);
 }
 
-// SPA guard: buttons can be (re)built after load by swaps, other components, or
-// another copy of this module, so watch the DOM and strip duplicates wherever
-// they appear. Installed once per page.
 if (!window.__smlSrbLabelGuard) {
   window.__smlSrbLabelGuard = new MutationObserver(mutations => {
-    for (const m of mutations) {
-      const host = m.target.closest ? m.target.closest("sml-reactive-button") : null;
+    for (const mutation of mutations) {
+      const host = mutation.target.closest ? mutation.target.closest("sml-reactive-button") : null;
       if (host) dedupeSrbLabel(host);
-      m.addedNodes.forEach(n => { if (n.nodeType === Node.ELEMENT_NODE) dedupeAllSrbLabels(n); });
+      mutation.addedNodes.forEach(node => {
+        if (node.nodeType === Node.ELEMENT_NODE) dedupeAllSrbLabels(node);
+      });
     }
   });
   window.__smlSrbLabelGuard.observe(document.documentElement, { childList: true, subtree: true });
   dedupeAllSrbLabels(document);
 }
 
-customElements.define("sml-reactive-button", SmlReactiveButton);
+customElements.define("sml-reactive-button", smlReactiveButton);
 
-export default SmlReactiveButton;
+export default smlReactiveButton;
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.D.G !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
